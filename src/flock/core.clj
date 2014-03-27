@@ -14,20 +14,31 @@
 ;; assoc-in updates nested associative collections
 (def new-code-vector (assoc-in code-vector [1 2 1] 'y))
 
-(def blah
+(def v-inc
   ['inc 'x])
 
+;;;
+
 (defn listify
-  "Convert nested collection v into nested list."
+  "Recursively convert nested collection v into nested list."
   [v]
   (if (coll? v)
     (list* (map listify v))
     v))
 
 (defn veval
-  "Evalulate nested vectors as code."
+  "Evalulate nested collections as code."
   [v]
   (eval (listify v)))
+
+(defn to-lambda 
+  "Convert nested collection to anonymous function.
+   Pass params as quoted symbols. e.g. (to-lambda v 'x 'y)"
+  [v & params]
+  (let [body (list (listify v))
+        args (vec params)
+        full (conj body args 'fn)] ;; full-function definition
+    (eval full)))                  ;; eval creates the actual lambda
 
 (defn main
   "Examples and stuff"
@@ -41,10 +52,10 @@
   (println "new-code-vector:" new-code-vector)
 
   (veval new-code-vector)
- 
-  ;; dynamically rebind x to 10, evaluate blah in this context
-  ;; restores original value of x afterwards
-  (binding [x 10] (veval blah))
+
+  (println "v-inc" v-inc)
+  (println "evaluating v-inc at 5")
+  ((to-lambda v-inc 'x) 1)
   )
 
 
