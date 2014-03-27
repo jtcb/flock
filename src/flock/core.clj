@@ -1,11 +1,11 @@
 (ns flock.core)
 
-;; dynamically rebindable variables
+;; dynamically rebindable variables; see (doc binding)
 (def ^:dynamic x 1)
 (def ^:dynamic y 2)
 
 ;; vectors allow fast access/replacement of interior elements
-;; symbols are quoted to hold evaluation
+;; symbols are quoted to hold evaluation (otherwise, they'd resolve)
 (def code-vector
   ['if ['= 1 ['+ 'x 0]]
        ['println "is 1"]
@@ -37,8 +37,8 @@
   [v & params]
   (let [body (list (listify v))
         args (vec params)
-        full (conj body args 'fn)] ;; full-function definition
-    (eval full)))                  ;; eval creates the actual lambda
+        full (conj body args 'fn)] ;; unevaluated definition
+    (eval full)))                  ;; eval creates an actual lambda
 
 (defn main
   "Examples and stuff"
@@ -55,7 +55,7 @@
 
   (println "v-inc" v-inc)
   (println "evaluating v-inc at 5")
-  ((to-lambda v-inc 'x) 1)
+  ((to-lambda v-inc 'x) 5)
   )
 
 
