@@ -1,0 +1,16 @@
+
+;; DEPRECATED
+(defn listify
+  "Convert nested collection v into nested list."
+  [v]
+  (if (coll? v)
+    (into '() (reverse (map listify v)))
+    v))
+    
+    
+(defn listify
+  "Convert nested collection v into nested list."
+  [v]
+  (if (coll? v)
+    (list* (map listify v))
+    v))
