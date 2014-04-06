@@ -1,9 +1,5 @@
 (ns flock.core)
 
-;; dynamically rebindable variables; see (doc binding)
-(def ^:dynamic x 1)
-(def ^:dynamic y 2)
-
 ;; vectors allow fast access/replacement of interior elements
 ;; symbols are quoted to hold evaluation (otherwise, they'd resolve)
 (def code-vector
@@ -17,6 +13,8 @@
 (def v-inc
   ['inc 'x])
 
+(def params ['x])
+
 ;;;
 
 (defn listify
@@ -26,36 +24,28 @@
     (list* (map listify v))
     v))
 
-(defn veval
-  "Evalulate nested collections as code."
-  [v]
-  (eval (listify v)))
+(defn to-code
+  "Convert nested collection to (unevaluated) anonymous function.
+   Suitable for viewing a code-vector.
+   Pass params as vector of quoted symbols. e.g. (to-code ['x 'y] v)"
+  [params v]
+  (let [body (list (listify v))
+        full (conj body params 'fn)]
+    full)) 
 
 (defn to-lambda 
   "Convert nested collection to anonymous function.
-   Pass params as quoted symbols. e.g. (to-lambda v 'x 'y)"
-  [v & params]
-  (let [body (list (listify v))
-        args (vec params)
-        full (conj body args 'fn)] ;; unevaluated definition
-    (eval full)))                  ;; eval creates an actual lambda
+   Pass params as vector of quoted symbols. e.g. (to-lambda ['x 'y] v)"
+  [params v]
+  (eval (to-code params v)))
 
 (defn main
   "Examples and stuff"
   [& args]
-  
-  (println "x:" x "y" y)
-  (println "code-vector:" code-vector)
-
-  (veval code-vector)
-  
-  (println "new-code-vector:" new-code-vector)
-
-  (veval new-code-vector)
-
-  (println "v-inc" v-inc)
-  (println "evaluating v-inc at 5")
-  ((to-lambda v-inc 'x) 5)
+ 
+  (prn (to-code params code-vector)) ;; print object
+  (println "At x = 1")
+  (println ((to-lambda params code-vector) 1))
   )
 
 
