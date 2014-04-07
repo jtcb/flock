@@ -1,26 +1,6 @@
 (ns flock.core)
 
-;;; USED FOR QUICK TESTING; TODO: remove
-
-;; vectors allow fast access/replacement of interior elements
-;; symbols are quoted to hold evaluation (otherwise, they'd resolve)
-(def code-vector
-  ['if ['= 1 ['+ 'x 0]]
-       ['println "is 1"]
-       ['println "not 1"]])
-
-;; assoc-in updates nested associative collections
-(def new-code-vector (assoc-in code-vector [1 2 1] 'y))
-
-(def v-inc
-  ['inc 'x])
-
-(def params ['x])
-
-;;; END QUICK TESTING
-
-
-;; gp infrastucture
+;; code-vector infrastucture
 
 (defn listify
   "Recursively convert nested collection v into nested list."
@@ -43,7 +23,6 @@
    Pass params as vector of quoted symbols. e.g. (to-lambda ['x 'y] v)"
   [params v]
   (eval (to-code params v)))
-
 
 ;; things that go in gp functions
 

@@ -14,3 +14,24 @@
   (if (coll? v)
     (list* (map listify v))
     v))
+
+;;; USED FOR QUICK TESTING; TODO: remove
+
+;; vectors allow fast access/replacement of interior elements
+;; symbols are quoted to hold evaluation (otherwise, they'd resolve)
+(def code-vector
+  ['if ['= 1 ['+ 'x 0]]
+       ['println "is 1"]
+       ['println "not 1"]])
+
+;; assoc-in updates nested associative collections
+(def new-code-vector (assoc-in code-vector [1 2 1] 'y))
+
+(def v-inc
+  ['inc 'x])
+
+(def params ['x])
+
+;;; END QUICK TESTING
+
+
