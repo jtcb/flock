@@ -92,13 +92,13 @@
         (recur (- i weight) remaining)))))
  
 
-
 (defn grow-random-tree 
   "Grow a max-depth limited random code vector.
+   
    Optional argument :p-leaf, e.g. (grow-random-tree max-depth :p-leaf 0)
    would force a full, max-depth tree.
-
-   Draws from leaves, unary-ops, binary-ops, quaternary-ops."
+   
+   Leaf nodes are drawn from leaves, interior nodes from ops."
   [max-depth & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
   (cond
     (<= max-depth 0) (rand-nth leaves)
@@ -111,13 +111,28 @@
         
         (into [head] sub-trees))))
 
+(defn force-tree
+  "grow-random-tree with p-leaf will result in p-leaf percent of the generated
+   functions being of depth 0 (e.g. (fn [params] some-constant)) This may be
+   undesirable for larger p-leaf values.
+   
+   force-tree forces the root of the generated tree to be a function,
+   guarenteeing some minimum branching, even with larger p-leaf values."
+  [max-depth & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
+  (let [head (rand-nth (keys ops))
+        arity (ops head)
+        sub-trees (for [i (range arity)]
+                    (grow-random-tree (- max-depth 1) :p-leaf p-leaf))]
+        (into [head] sub-trees)))
+
+
 (defn main
   "Examples and stuff"
   [& args]
 
   (println "; random tree evaluated at [x y z] = [1 2 3]")
-  (let [random-tree (grow-random-tree 10)]
-    (pprint-code (to-code random-tree))
-    (println "=>" ((to-lambda random-tree) 1 2 3))))
+  (let [some-tree (force-tree 10)]
+    (pprint-code (to-code some-tree))
+    (println "=>" ((to-lambda some-tree) 1 2 3))))
 
 
