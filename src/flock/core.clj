@@ -1,40 +1,28 @@
-(ns flock.core)
+(ns flock.core
+  (:require [clojure.pprint :as pprint]))
 
-;; code-vector infrastucture
+;; tunable paramters of the gp system
 
-(defn listify
-  "Recursively convert nested collection v into nested list."
-  [v]
-  (if (coll? v)
-    (list* (map listify v))
-    v))
+(def default-depth
+  "Default maximum depth of a randomly grown tree.
+   Currently unused."
+  10)
 
-(defn to-code
-  "Convert nested collection to (unevaluated) anonymous function.
-   Suitable for viewing a code-vector via (prn ...)
-   Pass params as vector of quoted symbols. e.g. (to-code ['x 'y] v)"
-  [params v]
-  (let [body (list (listify v))
-        full (conj body params 'fn)]
-    full)) 
-
-(defn to-lambda 
-  "Convert nested collection to anonymous function.
-   Pass params as vector of quoted symbols. e.g. (to-lambda ['x 'y] v)"
-  [params v]
-  (eval (to-code params v)))
-
-;; things that go in gp functions
-
-(def p-leaf "Probability of a generating a leaf when growing a tree."
+(def default-p-leaf
+  "Default probability of a generating a leaf when growing a tree."
   0.5)
 
-(def params ['x 'y 'z])
+(def params 
+  "Formal parameters of generated gp functions."
+  ['x 'y 'z])
 
-(def terminals [0 1 2])
+(def terminals
+  "Terminals of generated gp functions."
+  [0.5 1 2 '(rand)])
 
-;; leaves of a tree
-(def leaves (into [] (concat params terminals)))
+(def leaves (into params terminals))
+
+;; gp functions
 
 (defn div
   "Protected division. Division by zero returns 1."
@@ -43,40 +31,93 @@
     1
     (/ x y)))
 
-;; not sure if we *want* unary ops, but the option is here in case.
-(def unary-ops '[-])
+(defn *-1
+  "Unary minus. Note that ordinary (-) is assumed to be binary subtraction."
+  [x]
+  (- x))
 
-(def binary-ops '[+ - * div])
+(defn qif
+  "Quaternary if. Evaluates to c if a <= b, otherwise, evaluates to d."
+  [a b c d]
+  (if (<= a b)
+    c
+    d))
 
-;; (if) is the only ternary op I can think we might want. However, we may want
-;; to define it as a 4-ary operation if-a<=b-c-else-d, so we can stick to pure
-;; numbers. Thoughts?
+;; TODO: Add more ops; max/min, average, ... ?
+(def ops
+  "Map of operations that can appear in a generated gp code to their arities"
+  {'*-1 1, '+ 2, '- 2, '* 2 'div 2, 'qif 4})
+
+
+;; code-vector utility functions
+
+(defn pprint-code
+  "Pretty-print code (i.e. with indentation and newlines)."
+  [code]
+  (pprint/with-pprint-dispatch pprint/code-dispatch
+    (pprint/pprint code)))
+
+(defn listify
+  "Recursively convert nested collection v into nested lists."
+  [v]
+  (if (coll? v)
+    (list* (map listify v))
+    v))
+
+(defn to-code
+  "Convert nested collection to (unevaluated) anonymous function.
+   Suitable for viewing a code-vector via (println) or (pprint-code)
+   Requires params (vector of quoted symbols. e.g. ['x 'y]) to be defined."
+  [v]
+  (let [body (list (listify v))
+        full (conj body params 'fn)]
+    full)) 
+
+(defn to-lambda 
+  "Convert nested collection to anonymous function for sumary execution.
+   Requires params (vector of quoted symbols. e.g. ['x 'y]) to be defined."
+  [v]
+  (eval (to-code v)))
+
+
+(defn roulette
+  "Select one of m's keys with probability proportional to its value.
+   e.g. (roulette {:a 1 :b 2}) will select :a with probability 1/3."
+  [m]
+  (let [total (reduce + (map second m))]
+    (loop [i (rand total)
+           [[choice weight] & remaining] (seq m)]
+      (if (> weight i)
+        choice
+        (recur (- i weight) remaining)))))
+ 
 
 
 (defn grow-random-tree 
   "Grow a max-depth limited random code vector.
-   Setting p-leaf to 0 is equivalent to building a full, max-depth tree.
+   Optional argument :p-leaf, e.g. (grow-random-tree max-depth :p-leaf 0)
+   would force a full, max-depth tree.
 
-   TODO: add unary/ternary/4-ary op support."
-  [max-depth]
+   Draws from leaves, unary-ops, binary-ops, quaternary-ops."
+  [max-depth & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
   (cond
     (<= max-depth 0) (rand-nth leaves)
     (< (rand) p-leaf) (rand-nth leaves)
     :else
-      (let [head (rand-nth binary-ops)
-            arg1 (grow-random-tree (- max-depth 1))
-            arg2 (grow-random-tree (- max-depth 1))]
-        [head arg1 arg2])))
-
+      (let [head (rand-nth (keys ops))
+            arity (ops head)
+            sub-trees (for [i (range arity)]
+                        (grow-random-tree (- max-depth 1) :p-leaf p-leaf))]
+        
+        (into [head] sub-trees))))
 
 (defn main
   "Examples and stuff"
   [& args]
 
-  (println "random tree; evaluated at [x y z] = [1 2 3]")
+  (println "; random tree evaluated at [x y z] = [1 2 3]")
   (let [random-tree (grow-random-tree 10)]
-    (prn (to-code params random-tree))
-    (println ((to-lambda params random-tree) 1 2 3)))
-  )
+    (pprint-code (to-code random-tree))
+    (println "=>" ((to-lambda random-tree) 1 2 3))))
 
 
