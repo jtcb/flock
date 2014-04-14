@@ -2,14 +2,11 @@
   (:require [clojure.pprint :as pprint])
   (:import (java.util Random)))
 
-(def r (Random.))
+(def r
+  "Instance of Java Random object for global use (threadsafe)."
+  (Random.))
 
-(defn normal
-  "Normally distributed random number."
-  [mu sigma]
-  (-> r .nextGaussian (* sigma) (+ mu)))
-
-;; tunable paramters of the gp system
+;; Parameters of the GP system
 
 (def sigma
   "Standard deviation of number generated at the base of gp trees."
@@ -30,12 +27,18 @@
 
 (def terminals
   "Terminals of generated gp functions.
-   Want actual numbers to be appear more often than the rand function."
-  [:normal :normal :normal :normal '(rand)])
+   
+   TODO: currently, the only type of terminal is some (normally
+   distributed) real number, but can be extened.
+   Do we want actual numbers to be as likely as a formal parameter?"
+  (into []
+        (for [i (range (count params))] :normal)))
 
-(def leaves (into params terminals))
+(def leaves
+  "params U terminals (do not modify)"
+  (into params terminals))
 
-;; gp functions
+;; Special GP functions
 
 (defn div
   "Protected division. Division by zero returns 1."
@@ -56,13 +59,19 @@
     c
     d))
 
-;; TODO: Add more ops; max/min, average, ... ?
 (def ops
-  "Map of operations that can appear in a generated gp code to their arities"
+  "Map of: operations that can appear in a generated gp code => their arities
+   TODO: Add more ops? (e.g. max/min, average)"
   {'*-1 1, '+ 2, '- 2, '* 2 'div 2, 'qif 4})
 
-
+;;
 ;; utility functions
+;;
+
+(defn rand-normal
+  "Normally distributed random number."
+  [mu sigma]
+  (-> r .nextGaussian (* sigma) (+ mu)))
 
 (defn pprint-code
   "Pretty-print code (i.e. with indentation and newlines)."
@@ -118,7 +127,7 @@
         (< (rand) p-leaf))
       (let [leaf (rand-nth leaves)]
         (if (= leaf :normal)
-          (normal 0 sigma)
+          (rand-normal 0 sigma)
           leaf))
     :else
       (let [head (rand-nth (keys ops))
@@ -127,28 +136,6 @@
                         (grow-random-tree (- max-depth 1) :p-leaf p-leaf))]
         
         (into [head] sub-trees))))
-
-
-(comment "old version"
-(defn grow-random-tree 
-  "Grow a max-depth limited random code vector.
-   
-   Optional argument :p-leaf, e.g. (grow-random-tree max-depth :p-leaf 0)
-   would force a full, max-depth tree.
-   
-   Leaf nodes are drawn from leaves, interior nodes from ops."
-  [max-depth & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
-  (cond
-    (<= max-depth 0) (rand-nth leaves)
-    (< (rand) p-leaf) (rand-nth leaves)
-    :else
-      (let [head (rand-nth (keys ops))
-            arity (ops head)
-            sub-trees (for [i (range arity)]
-                        (grow-random-tree (- max-depth 1) :p-leaf p-leaf))]
-        
-        (into [head] sub-trees))))
-)
 
 
 (defn force-tree
