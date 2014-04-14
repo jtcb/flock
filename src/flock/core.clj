@@ -1,7 +1,19 @@
 (ns flock.core
-  (:require [clojure.pprint :as pprint]))
+  (:require [clojure.pprint :as pprint])
+  (:import (java.util Random)))
+
+(def r (Random.))
+
+(defn normal
+  "Normally distributed random number."
+  [mu sigma]
+  (-> r .nextGaussian (* sigma) (+ mu)))
 
 ;; tunable paramters of the gp system
+
+(def sigma
+  "Standard deviation of number generated at the base of gp trees."
+  10)
 
 (def default-depth
   "Default maximum depth of a randomly grown tree.
@@ -17,8 +29,9 @@
   ['x 'y 'z])
 
 (def terminals
-  "Terminals of generated gp functions."
-  [0.5 1 2 '(rand)])
+  "Terminals of generated gp functions.
+   Want actual numbers to be appear more often than the rand function."
+  [:normal :normal :normal :normal '(rand)])
 
 (def leaves (into params terminals))
 
@@ -49,7 +62,7 @@
   {'*-1 1, '+ 2, '- 2, '* 2 'div 2, 'qif 4})
 
 
-;; code-vector utility functions
+;; utility functions
 
 (defn pprint-code
   "Pretty-print code (i.e. with indentation and newlines)."
@@ -101,6 +114,31 @@
    Leaf nodes are drawn from leaves, interior nodes from ops."
   [max-depth & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
   (cond
+    (or (<= max-depth 0)
+        (< (rand) p-leaf))
+      (let [leaf (rand-nth leaves)]
+        (if (= leaf :normal)
+          (normal 0 sigma)
+          leaf))
+    :else
+      (let [head (rand-nth (keys ops))
+            arity (ops head)
+            sub-trees (for [i (range arity)]
+                        (grow-random-tree (- max-depth 1) :p-leaf p-leaf))]
+        
+        (into [head] sub-trees))))
+
+
+(comment "old version"
+(defn grow-random-tree 
+  "Grow a max-depth limited random code vector.
+   
+   Optional argument :p-leaf, e.g. (grow-random-tree max-depth :p-leaf 0)
+   would force a full, max-depth tree.
+   
+   Leaf nodes are drawn from leaves, interior nodes from ops."
+  [max-depth & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
+  (cond
     (<= max-depth 0) (rand-nth leaves)
     (< (rand) p-leaf) (rand-nth leaves)
     :else
@@ -110,6 +148,8 @@
                         (grow-random-tree (- max-depth 1) :p-leaf p-leaf))]
         
         (into [head] sub-trees))))
+)
+
 
 (defn force-tree
   "grow-random-tree with p-leaf will result in p-leaf percent of the generated
@@ -125,6 +165,10 @@
                     (grow-random-tree (- max-depth 1) :p-leaf p-leaf))]
         (into [head] sub-trees)))
 
+
+;; TODO mutate sections of a tree (pick item, replace w/ new random tree)
+;;      conduct crossover
+;;      generate an initial popuation, eval fitness, etc...
 
 (defn main
   "Examples and stuff"
