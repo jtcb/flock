@@ -18,8 +18,15 @@
 
 (def maximum-depth
   "Default maximum depth of genotype.
-   Randomly grown trees with depth > 15 start to seriously drain performance."
-  12)
+
+   NOTE
+   The Sun JVM has a 64k limit for classfiles. We risk generating functions
+   too large with maximum-depth > 8, although this is unlikely. I've seen it
+   happen with depth=12, though.
+   
+   Possible workaround: switch to ternary if. This would guarentee safety with
+   depth=10."
+  10)
 
 (def default-p-leaf
   "Default probability of a generating a leaf when growing a tree."
@@ -45,7 +52,7 @@
 (defn div
   "Protected division. Division by zero returns 1."
   [x y]
-  (if (= y 0)
+  (if (== y 0)
     1
     (/ x y)))
 
@@ -104,18 +111,6 @@
   [v]
   (eval (to-code v)))
 
-
-(defn roulette
-  "Select one of m's keys with probability proportional to its value.
-   e.g. (roulette {:a 1 :b 2}) will select :a with probability 1/3."
-  [m]
-  (let [total (reduce + (map second m))]
-    (loop [i (rand total)
-           [[choice weight] & remaining] (seq m)]
-      (if (> weight i)
-        choice
-        (recur (- i weight) remaining)))))
- 
 
 (defn grow-random-tree 
   "Grow a max-depth limited random code vector.
@@ -213,15 +208,59 @@
       (> (vector-depth c1) maximum-depth) (pair c2)
       :else (pair c1 c2))))
 
-;; generate an initial popuation, eval fitness, etc...
+;; Actual GP system
+
+(defn stupid-fitness
+  "Fitness is the absolute value of the sum of the results of the function
+   applied at 0."
+  [phenotype]
+  (Math/abs
+    (apply + 
+      (apply phenotype
+        (for [i (range (count params))] 0)))))
+
+(defn roulette
+  "Select one of m's keys with probability proportional to its value.
+   e.g. (roulette {:a 1 :b 2}) will select :a with probability 1/3.
+   
+   Values should be non-negative numbers."
+  [m]
+  (let [total (reduce + (map second m))]
+    (loop [i (rand total)
+           [[choice weight] & remaining] (seq m)]
+      (if (> weight i)
+        choice
+        (recur (- i weight) remaining)))))
+
+
+(defn ramped-half-and-half
+  "ALPHA - code not thorougly tested
+  
+   Ramped half and half method to generate initial population.
+   Generates 2 * half-size with half-size many trees generated to ramp-depth
+   and the other half generated randomly.
+  
+   All trees are limited by the globally defined maximum-depth."
+  [half-size ramp-depth]
+  (let [full (for [i (range 0 half-size)]
+               (new-genotype (max ramp-depth maximum-depth) :p-leaf 0))
+        random (for [i (range 0 half-size)]
+                 (new-genotype maximum-depth))
+        population (concat full random)
+        fits (map #(stupid-fitness (to-lambda %)) population)]
+    (zipmap population fits)))
 
 (defn main
   "Examples and stuff"
   [& args]
-
-  (println "; random tree evaluated at [x y z] = [1 2 3]")
-  (let [some-tree (force-tree 10)]
-    (pprint-code (to-code some-tree))
-    (println "=>" ((to-lambda some-tree) 1 2 3))))
-
-
+  ;; population is map from genotypes to fitness
+  ;; (to-lambda g) converts genotype to phenotype
+  ;; (roulette map) implements fitness proportional selection
+  ;; (mutate g) returns the result of mutating g
+  ;; (crossover p1 p2) performs crossover; returning a list of new genotypes
+  (let [population (ramped-half-and-half 10 5)
+        some-genotype (roulette population)]
+    (pprint-code (to-code some-genotype))
+    ))
+  
+ 
