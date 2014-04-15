@@ -6,6 +6,10 @@
   "Instance of Java Random object for global use (threadsafe)."
   (Random.))
 
+(def pair
+  "Representation for returning a pair of objects. Currently, aliased to list"
+  list)
+
 ;; Parameters of the GP system
 
 (def sigma
@@ -15,7 +19,7 @@
 (def maximum-depth
   "Default maximum depth of genotype.
    Randomly grown trees with depth > 15 start to seriously drain performance."
-  3)
+  12)
 
 (def default-p-leaf
   "Default probability of a generating a leaf when growing a tree."
@@ -29,13 +33,11 @@
   "Terminals of generated gp functions.
    
    TODO: currently, the only type of terminal is some (normally
-   distributed) real number, but can be extened.
-   Do we want actual numbers to be as likely as a formal parameter?"
-  (into []
-        (for [i (range (count params))] :normal)))
+   distributed) real number, but can be extened."
+  [:normal])
 
 (def leaves
-  "params U terminals (do not modify)"
+  "params U terminals"
   (into params terminals))
 
 ;; Special GP functions
@@ -80,7 +82,8 @@
     (pprint/pprint code)))
 
 (defn listify
-  "Recursively convert nested collection v into nested lists."
+  "Recursively convert nested collection v into nested lists.
+   TODO consider changing coll? to vector? for interop concerns"
   [v]
   (if (coll? v)
     (list* (map listify v))
@@ -155,15 +158,15 @@
 
 (defn new-genotype
   "Create a fresh (random) genotype. Genotypes consist of a vector of
-   [:genotype code-vector-for-x code-vector-for-y].
-  
-   Genotypes are wrapped this way to make them identical to code-vectors.
-   (Simpler interface for crossover/mutation operators.)
+   [pair code-vector-for-x code-vector-for-y].
+
+   pair acts the head of the genotype and will never be replaced/moved by
+   genetic operators. (This also simplifies the interface.)
   
    The x and y fns are generated using force-tree."
   [max-depth & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
-  [:genotype (force-tree (- max-depth 1) :p-leaf p-leaf)
-             (force-tree (- max-depth 1) :p-leaf p-leaf)])
+  (conj ['pair] (force-tree (- max-depth 1) :p-leaf p-leaf)
+                (force-tree (- max-depth 1) :p-leaf p-leaf)))
 
 (defn crossover-points
   "Return lazy-seq of crossover/mutation points."
@@ -177,21 +180,39 @@
 
 (defn mutate
   "Return the result of point mutating genotype g.
-   Operation obeys maximum-depth i.e. new genotype will not be too deep."
+   Operation obeys maximum-depth i.e. new genotype will not be too deep,
+   assuming that the genotype's depth is already less than maximum-depth."
   [g & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
   (let [cp (rand-nth (crossover-points g))
         depth (count cp)
         new-subtree (grow-random-tree (- maximum-depth depth) :p-leaf p-leaf)]
     (assoc-in g cp new-subtree)))
 
-(defn crossover
-  "Return the result of crossover between genotypes p1 and p2 as '(c1 c2).
-   Operation obeys maximum-depth."
-  [p1 p2]
-  nil)
+(defn vector-depth
+  "Return the nesting depth of nested vectors.
+   (Not very efficient.)"
+  [v]
+  (let [cp (crossover-points v)]
+    (apply max (map count cp))))
 
-;; TODO 
-;; conduct crossover
+(defn crossover
+  "Return the result of crossover between genotypes p1 and p2 as (pair c1 c2)
+   
+   Obeys maximum depth (assuming both parents do); if result of crossover
+   would have produced a genotype too deep, then only the depth appropriate
+   child will be returned." 
+  [p1 p2]
+  (let [p1-crosspoint (rand-nth (crossover-points p1))
+        p2-crosspoint (rand-nth (crossover-points p2))
+        p1-tail (get-in p1 p1-crosspoint)
+        p2-tail (get-in p2 p2-crosspoint)
+        c1 (assoc-in p1 p1-crosspoint p2-tail)
+        c2 (assoc-in p2 p2-crosspoint p1-tail)]
+    (cond
+      (> (vector-depth c2) maximum-depth) (pair c1)
+      (> (vector-depth c1) maximum-depth) (pair c2)
+      :else (pair c1 c2))))
+
 ;; generate an initial popuation, eval fitness, etc...
 
 (defn main
