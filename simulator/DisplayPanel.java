@@ -17,6 +17,7 @@ import javax.imageio.ImageIO;
 
 public class DisplayPanel extends JPanel {
 
+	private static int FRAME_WIDTH=300, FRAME_HEIGHT=300;
 
 	private boolean init = false;
 	private double[][] field, pen;
@@ -40,6 +41,7 @@ public class DisplayPanel extends JPanel {
 
 	public DisplayPanel() {
         setBorder(BorderFactory.createLineBorder(Color.black));
+        setPreferredSize(new Dimension(FRAME_WIDTH, FRAME_HEIGHT));
     }
 
     public void paintComponent(Graphics g) {
@@ -69,7 +71,7 @@ public class DisplayPanel extends JPanel {
 
         if (init && t >= 0) {
 			// Draw wolves and sheep:
-        	for (int i=0; i<numWolves; i++) {
+        	for (int i=0; i<numWolves; i++) {        		
 				double x = positions[i][t][0];
 				double y = positions[i][t][1];
 				AffineTransform transform = new AffineTransform(1, 0, 0, 1, x*scale + x0, y*scale + y0);
@@ -97,6 +99,11 @@ public class DisplayPanel extends JPanel {
 		this.positions = positions;
 		this.t = 0;
 		init = true;
+		repaint();
+	}
+	
+	public void resetT() {
+		t = 0;
 		repaint();
 	}
 

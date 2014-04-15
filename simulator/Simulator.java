@@ -8,7 +8,7 @@ import java.awt.event.*;
 import javax.swing.*;
 
 import java.io.*;
-import java.util.*;
+import java.util.Scanner;
 
 
 public class Simulator extends JPanel {
@@ -34,11 +34,14 @@ public class Simulator extends JPanel {
 	private JPanel buttonsPanel;
 	DisplayPanel display;
 
-
+	private Timer timer;
+	private int milliseconds = 100;
 
 	private static final long serialVersionUID = 1L;
 	private static int FRAME_WIDTH=1100, FRAME_HEIGHT=600;
 	private JFrame frame;
+	
+	
 
 	////////////////////////////////////////// Setup /////////////////////////////////////////////////////
 
@@ -58,6 +61,7 @@ public class Simulator extends JPanel {
 		frame.setLayout(new BorderLayout());
 
 		buttonsPanel = new JPanel();
+		buttonsPanel.setPreferredSize(new Dimension(FRAME_WIDTH/4, FRAME_HEIGHT/2));
 		add(buttonsPanel, BorderLayout.WEST);
 
 		ConfigureFileReader();
@@ -82,9 +86,60 @@ public class Simulator extends JPanel {
 				display.updateDisplay();
 			}
 		});
+		
+		/* Timer sends signals to display: */
+		final ActionListener timerListener = new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (!readData) return;
+				display.updateDisplay();
+			}
+		};
+		timer = new Timer(milliseconds, timerListener);
+		
+		/* Play button: */
+		JButton playButton = new JButton("Run");
+		buttonsPanel.add(playButton);
+		playButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				timer.start();
+			}
+		});
+		
+		/* Pause button: */
+		JButton pauseButton = new JButton("Pause");
+		buttonsPanel.add(pauseButton);
+		pauseButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				timer.stop();
+			}
+		});
+		
+		/* Pause button: */
+		JButton restartButton = new JButton("Restart");
+		buttonsPanel.add(restartButton);
+		restartButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				timer.stop();
+				display.resetT();
+			}
+		});
+		
+		
+		/* Scroll bar to control playback speed: */
+		final JScrollBar speedBar = new JScrollBar(JScrollBar.HORIZONTAL);
+		speedBar.setMinimum(1);
+		speedBar.setMaximum(1000);
+		speedBar.setValue(milliseconds);
+		buttonsPanel.add(speedBar);
+		speedBar.addAdjustmentListener(new AdjustmentListener() {
+			public void adjustmentValueChanged(AdjustmentEvent e) {
+				milliseconds = speedBar.getValue();
+				timer.stop();
+				timer = new Timer(milliseconds, timerListener);
+				
+			}
+		});
 
-
-		//display.add();
 
 		add(display, BorderLayout.CENTER);
 
@@ -128,10 +183,15 @@ public class Simulator extends JPanel {
 		add(readMsg, BorderLayout.NORTH);
 
 		// Add display area:
+		
 		displayContents = new JTextArea();
 		displayContents.setEditable(false);
 		JScrollPane scrollContents = new JScrollPane(displayContents);
-		add(scrollContents, BorderLayout.EAST);
+		JPanel textPanel = new JPanel();
+		scrollContents.setPreferredSize(new Dimension(FRAME_WIDTH/4, FRAME_HEIGHT));
+		textPanel.setPreferredSize(new Dimension(FRAME_WIDTH/4, FRAME_HEIGHT));
+		textPanel.add(scrollContents);
+		add(textPanel, BorderLayout.EAST);
 
 
 	}
@@ -183,7 +243,7 @@ public class Simulator extends JPanel {
 		displayContents.setText(disp);
 		readData = true;
 	}
-
+	
 	public static void main(String[] args) {
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
