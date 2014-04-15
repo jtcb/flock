@@ -12,10 +12,10 @@
   "Standard deviation of number generated at the base of gp trees."
   10)
 
-(def default-depth
-  "Default maximum depth of a randomly grown tree.
-   Currently unused."
-  10)
+(def maximum-depth
+  "Default maximum depth of genotype.
+   Randomly grown trees with depth > 15 start to seriously drain performance."
+  3)
 
 (def default-p-leaf
   "Default probability of a generating a leaf when growing a tree."
@@ -153,9 +153,46 @@
         (into [head] sub-trees)))
 
 
-;; TODO mutate sections of a tree (pick item, replace w/ new random tree)
-;;      conduct crossover
-;;      generate an initial popuation, eval fitness, etc...
+(defn new-genotype
+  "Create a fresh (random) genotype. Genotypes consist of a vector of
+   [:genotype code-vector-for-x code-vector-for-y].
+  
+   Genotypes are wrapped this way to make them identical to code-vectors.
+   (Simpler interface for crossover/mutation operators.)
+  
+   The x and y fns are generated using force-tree."
+  [max-depth & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
+  [:genotype (force-tree (- max-depth 1) :p-leaf p-leaf)
+             (force-tree (- max-depth 1) :p-leaf p-leaf)])
+
+(defn crossover-points
+  "Return lazy-seq of crossover/mutation points."
+  [v]
+  (if (vector? v)
+    (for [i (range 1 (count v))
+          p (conj (crossover-points (v i)) nil)]
+      (conj p i))
+  ;else
+    nil))
+
+(defn mutate
+  "Return the result of point mutating genotype g.
+   Operation obeys maximum-depth i.e. new genotype will not be too deep."
+  [g & {:keys [p-leaf] :or {p-leaf default-p-leaf}}]
+  (let [cp (rand-nth (crossover-points g))
+        depth (count cp)
+        new-subtree (grow-random-tree (- maximum-depth depth) :p-leaf p-leaf)]
+    (assoc-in g cp new-subtree)))
+
+(defn crossover
+  "Return the result of crossover between genotypes p1 and p2 as '(c1 c2).
+   Operation obeys maximum-depth."
+  [p1 p2]
+  nil)
+
+;; TODO 
+;; conduct crossover
+;; generate an initial popuation, eval fitness, etc...
 
 (defn main
   "Examples and stuff"
