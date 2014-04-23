@@ -1,5 +1,6 @@
 (ns flock.core
-  (:require [clojure.pprint :as pprint])
+  (:require [clojure.pprint :as pprint]
+            [flock.fitness :as f])
   (:import (java.util Random)))
 
 (def r

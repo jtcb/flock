@@ -1,4 +1,6 @@
-(import java.util.Arrays)
+(ns flock.fitness
+  (:import (java.util Arrays)))
+
 ;(set! *warn-on-reflection* true)
 (set! *unchecked-math* true)
 
