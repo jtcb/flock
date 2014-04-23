@@ -243,7 +243,7 @@
    All trees are limited by the globally defined maximum-depth."
   [half-size ramp-depth]
   (let [full (for [i (range 0 half-size)]
-               (new-genotype (max ramp-depth maximum-depth) :p-leaf 0))
+               (new-genotype (min ramp-depth maximum-depth) :p-leaf 0))
         random (for [i (range 0 half-size)]
                  (new-genotype maximum-depth))
         population (concat full random)
