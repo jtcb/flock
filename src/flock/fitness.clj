@@ -1,257 +1,306 @@
-(def SHEEP 20)
+(import java.util.Arrays)
+;(set! *warn-on-reflection* true)
+(set! *unchecked-math* true)
+
+; Simulation parameters
 (def WOLVES 1)
+(def SHEEP 20)
+; Field/Pen [width, height].  Both have upper left corner located at (0,0)
 (def field [100 100])
 (def pen [25 25])
+; If creature penetrates a fence, the penetrating coordinate is randomly
+; reset to within fence-spawn distance of the fence.  This is done to
+; prevent sheep-stacking in the corners
 (def fence-spawn 0.5)
-		
+
+; Force ranges
 (def dist-fence 5)
-(def dist-sheep 10)
-(def dist-wolf 15)
+(def dist-sheep 20)
+(def dist-wolf 30)
+; Force magnitudes
 (def force-fence 1)
 (def force-wolf 1)
 (def force-sheep-attract 0.1)
-(def force-sheep-repel 0.01)
+(def force-sheep-repel 0.033)
 (def force-pen 0.1)
+; Maximum velocities
 (def vmax-sheep 1)
 (def vmax-wolf (* 3 vmax-sheep))
 
-(defmacro sqr [x] (list '* x x))
+; Useful precalculations
+(def fieldx (field 0))
+(def fieldy (field 1))
+(def penx (pen 0))
+(def peny (pen 1))
+(def fieldxb (- fieldx dist-fence))
+(def fieldyb (- fieldy dist-fence))
+(def penxbl (- penx dist-fence))
+(def penxbr (+ penx dist-fence))
+(def fratio (/ force-fence dist-fence))
+(def pencenterx (/ (pen 0) 2))
+(def pencentery (/ (pen 1) 2))
+(def dist-wolf2 (* dist-wolf dist-wolf))
+(def dist-sheep2 (* dist-sheep dist-sheep))
+(def vmax-wolf2 (* vmax-wolf vmax-wolf))
+(def vmax-sheep2 (* vmax-sheep vmax-sheep))
 
-(defmacro nestedmap
-	"Applies f to collections of collections"
-	[f & args]
-	(list* 'map `(partial map ~f) args) 
+(defmacro pr-arr
+	"Converts primitive array to a string without the 
+	annoying formatting of toString"
+	[x]
+	`(.replace
+		(.replace
+			(.replace (Arrays/toString ~x) 
+				"[" "")
+			"]" "")
+		"," ""))
+
+(defmacro sqr [x] `(* ~x ~x))
+
+(defmacro ainc
+	"arr[idx] += val"
+	[arr idx val]
+	`(aset ~arr ~idx (+ (aget ~arr ~idx) ~val))
 )
 
-(defn sqrmag 
-	"Calculates the magnitude squared of vector v"
-	[v] 
-	(reduce #(+ %1 (* %2 %2))
-				0
-				v)
+(defmacro forloop
+	"For when you get tired of writing loop and recur everywhere"
+	[idx start end increment & body]
+	`(loop [~idx ~start]
+		(when (< ~idx ~end)
+			~@body
+			(recur (+ ~idx ~increment))))
 )
-	
-(defn rescale-vec
-	"Vector v is rescaled (if necessary) to magnitude maxv"
-	[maxv, v]
-	(let	[mag2	(sqrmag v)]
-		(if 	(<= mag2 (sqr maxv)) 
-				v
-				(map (partial * (/ maxv (Math/sqrt mag2))) v)
+
+(defn initialize-rand-arr
+	"Returns an array with (size) pairs of random elements, the first of 
+	which	ranges from (start1) to (start1+range1), the second of which ranges
+	from (start2) to (start2+range2)"
+	^doubles [size start1 range1 start2 range2]
+	(let [size (* 2 size)
+			arr (double-array size)]
+		(forloop i 0 size 2
+			(aset arr i (-> (Math/random) (* range1) (+ start1)))
+			(aset arr (inc i) (-> (Math/random) (* range2) (+ start2)))
+		)
+		arr
+	)
+)
+
+(defn eval-fitness
+	"Called at end of simulation, returns fraction of sheep in pen"
+	[^doubles wolf-pos ^doubles sheep-pos]
+	(loop [i 0 count 0]
+		(if (< i (alength sheep-pos))
+			(recur	(+ 2 i)
+						(if (and (< (aget sheep-pos i) penx) (< (aget sheep-pos (inc i)) peny))
+							(inc count)
+							count))
+			(/ count SHEEP))))
+
+(defn dumb-wolf
+	"Writes random values to (f) array"
+	[args ^doubles f]
+	(forloop i 0 (alength f) 1
+		(aset f i (- (Math/random) 0.5)))
+)
+
+(defn calc-sheep-f
+	"Calculates force on each sheep and writes result to (f) array"
+	[^doubles wolf-pos ^doubles sheep-pos ^doubles f]
+	(forloop i 0 (alength sheep-pos) 2
+		(let [j (inc i)
+				x (aget sheep-pos i)
+				y (aget sheep-pos j)]
+				(aset f i 0.0)
+				(aset f j 0.0)
+				
+				; Fence forces - If sheep is within dist-fence of a fence
+				; then it experiences a force which grows linearly from 0
+				; at dist-fence away, to force-fence at the fence
+				
+				; Left fence force
+				(if (< x dist-fence)
+					(ainc f i (-> dist-fence (- x) (* fratio))))
+				; Right fence force
+				(if (> x fieldxb)
+					(ainc f i (-> fieldxb (- x) (* fratio))))
+				; Upper fence force
+				(if (< y dist-fence)
+					(ainc f j (-> dist-fence (- y) (* fratio))))
+				; Lower fence force
+				(if (> y fieldyb)
+					(ainc f j (-> fieldyb (- y) (* fratio))))
+				; Pen fence force
+				(if-not (or	(>= y peny)	(<= x penxbl) (>= x penxbr))
+					(ainc f i (-> (if (< x penx) penxbl penxbr)
+										(- x) (* fratio))))
+										
+				; Pen force - If sheep is within the boundaries of the pen
+				; then it experience a force of magnitude force-pen toward
+				; the direction of the pen center
+							
+				(if (and (< x penx) (< y peny))
+					(let [px (- pencenterx x)
+							py (- pencentery y)
+							ratio (/ force-pen (Math/sqrt (+ (sqr px) (sqr py))))]
+						(ainc f i (* px ratio))
+						(ainc f j (* py ratio))))
+						
+				; Wolf force - If sheep is within dist-wolf of a wolf, it 
+				; experiences a 1/r^2 repulsive force whose strength scales 
+				; with force-wolf.  This is offset to be 0 at dist-wolf.
+				
+				(forloop k 0 (alength wolf-pos) 2
+					(let [wx (- x (aget wolf-pos k))
+							wy (- y (aget wolf-pos (inc k)))
+							d2 (+ (sqr wx) (sqr wy))]
+						(if (and (< d2 dist-wolf2) (not= d2 0.0))
+							(let [mag (->	dist-wolf2 
+												(/ d2) 
+												(- 1) 
+												(* force-wolf) 
+												(/ (Math/sqrt d2)))]
+								(ainc f i (* mag wx))
+								(ainc f j (* mag wy))))))
+				
+				; Sheep force - If sheep is within dist-sheep of another sheep,
+				; it experiences 2 forces: a constant attractive force with
+				; magnitude force-sheep-attract, as well as a repulsive 1/r^2 
+				; force whose strength is set by force-sheep-repel.  
+				; The repulsive force is offset to be 0 at dist-sheep.
+				
+				(forloop k 0 (alength sheep-pos) 2
+					(let [sx (- x (aget sheep-pos k))
+							sy (- y (aget sheep-pos (inc k)))
+							d2 (+ (sqr sx) (sqr sy))]
+						(if (and (< d2 dist-sheep2) (not= d2 0.0))
+							(let [mag (->	dist-sheep2 
+												(/ d2) 
+												(- 1) 
+												(* force-sheep-repel)
+												(- force-sheep-attract) 
+												(/ (Math/sqrt d2)))]
+								(ainc f i (* mag sx))
+								(ainc f j (* mag sy))))))		
 		)
 	)
 )
 
-(defn fence-check
-	"Returns a new set of coordinates. Result will be different from
-	new only if a fence has been penetrated."
-	[old new]
-	(let [x1	(first old)
-			x2 (first new)
-			minx	(min x1 x2)
-			maxx	(max x1 x2)
-			; Check if pen fence has been penetrated
-			new	(if (or	(>= minx (pen 0))
-								(<= maxx (pen 0)))
-							new
-							(let [y1	(second old)
-									y2 (second new)
-									intercept	(-> (- (pen 0) x1) (* (- y2 y1)) (/ (- x2 x1)) (+ y1))
-									op	(if (< x1 x2) - +)]
-								(if (> intercept (pen 1))
-										new
-										[(op (pen 0) (rand fence-spawn)) y2]
-								)
-							)
-					)
-			; Check if field boundaries have been penetrated
-			new (map #(if %1 (rand fence-spawn) %2) 
-						(map < new [0 0]) 
-						new)
-			new (map #(if %1 (- %2 (rand fence-spawn)) %3) 
-						(map > new field) 
-						field 
-						new)
-			]
-			new
+(defn updatev
+	"Adds f to v, then checks that the resultant velocities
+	do not exceed maxv.  If so, velocities are rescaled"
+	[^doubles v ^doubles f ^double maxv ^double maxv2]
+	(loop [i 0]
+		(if (< i (alength v))
+			(let [j (inc i)
+					newvx (+ (aget v i) (aget f i))
+					newvy (+ (aget v j) (aget f j))
+					mag2 (+ (sqr newvx) (sqr newvy))]
+				(if (> mag2 maxv2)
+					(let [ratio (/ maxv (Math/sqrt mag2))]
+						(aset v i (* ratio newvx))
+						(aset v j (* ratio newvy)))
+					(do
+						(aset v i newvx)
+						(aset v j newvy)))
+				(recur (+ i 2))
+			))))
+			
+(defn updatepos
+	"Adds vel to pos, then checks/resolves fence penetrations"
+	[^doubles pos ^doubles vel]
+	(forloop i 0 (alength pos) 2
+		(let [j	(inc i)
+				x1 (aget pos i)
+				y1 (aget pos j)
+				x2 (+ x1 (aget vel i))
+				y2 (+ y1 (aget vel j))
+				maxx (if (> x1 x2) x1 x2)
+				minx (if (<= x1 x2) x1 x2)
+				; Check for pen fence penetration
+				x2 (if (or (>= minx penx) (<= maxx penx))
+						x2
+						(let [intercept (-> (- penx x1) (* (- y2 y1)) (/ (- x2 x1)) (+ y1))]
+							(if (>= intercept peny)
+								x2
+								(let [ratio (if (< x1 x2) (- fence-spawn) fence-spawn)]
+									(aset vel i 0.0)
+									(+ penx (* ratio (Math/random)))))))
+				; Left fence
+				x2 (if (< x2 0)
+						(do
+							(aset vel i 0.0)
+							(* fence-spawn (Math/random)))
+						x2)
+				; Right fence
+				x2 (if (> x2 fieldx)
+						(do
+							(aset vel i 0.0)
+							(- fieldx (* fence-spawn (Math/random))))
+						x2)
+				; Upper fence
+				y2 (if (< y2 0)
+						(do
+							(aset vel j 0.0)
+							(* fence-spawn (Math/random)))
+						y2)
+				; Right fence
+				y2 (if (> y2 fieldy)
+						(do
+							(aset vel j 0.0)
+							(- fieldy (* fence-spawn (Math/random))))
+						y2)]
+			(aset pos i x2)
+			(aset pos j y2)
+		)
 	)
-)
-
-(defn calc-sheep-f
-	"Returns the net force acting on sheep with coordinates pos"
-	[pos, wolf-pos, sheep-pos]
-	(let [x	(first pos)
-			y	(second pos)
-			; Fence forces
-			fence-boundary	[dist-fence dist-fence]
-			fence-force1	(map #(if %1 	0
-													(* force-fence (- 1 (/ %2 dist-fence))))
-										(map >= pos fence-boundary)
-										pos)
-			fence-boundary (map - field fence-boundary)
-			fence-force2	(map #(if %1	0
-													(* force-fence (- (/ %2 dist-fence) 1)))
-										(map <= pos fence-boundary)
-										(map - field pos))
-			fence-force3	(if (or	(> y (pen 1))
-											(<= x (- (pen 0) dist-fence))
-											(>= x (+ (pen 0) dist-fence)))
-										[0 0]
-										(if (>= x (pen 0))
-												[(* force-fence (- 1 (/ (- x (pen 0)) dist-fence))) 0]
-												[(* force-fence (- (/ (- (pen 0) x) dist-fence) 1)) 0]
-										)
-								)
-			; Pen force
-			pen-force	(if (not-every? identity (map < pos pen))
-									[0 0]
-									(let [pen-vec (map #(- (/ %1 2) %2)
-																pen
-																pos)
-											ratio (/ force-pen (Math/sqrt (sqrmag pen-vec)))]
-											(map (partial * ratio) pen-vec)
-									)
-							)
-			; Wolf forces
-			wolf-vec	(nestedmap - (repeat pos) wolf-pos)
-			wolf-dist2	(map sqrmag wolf-vec)
-			wolf-force	(map	(fn [d2 v]
-										(if (or 	(>= d2 (sqr dist-wolf))
-													(= d2 0.0))
-												[0 0]
-												(map (partial *	(/ force-wolf (Math/sqrt d2))
-																		(- (/ (sqr dist-wolf) d2) 1))
-														v)
-										)
-									)
-									wolf-dist2
-									wolf-vec
-							)
-			wolf-force	(reduce #(map + %1 %2) wolf-force)
-			; Sheep forces
-			sheep-vec	(nestedmap - (repeat pos) sheep-pos)
-			sheep-dist2	(map sqrmag sheep-vec)
-			sheep-force	(map	(fn [d2 v]
-										(if (or	(>= d2 (sqr dist-sheep))
-													(= d2 0.0))
-												[0 0]
-												(map #(-> 	(sqr dist-sheep)
-																(/ d2)
-																(- 1)
-																(* force-sheep-repel)
-																(- force-sheep-attract)
-																(/ (Math/sqrt d2))
-																(* %))
-														v)
-										)
-									)
-									sheep-dist2
-									sheep-vec
-							)
-			sheep-force (reduce #(map + %1 %2) sheep-force)
-			]
-			(map + fence-force1 fence-force2 fence-force3 pen-force wolf-force sheep-force)
-	)
-)
-
-(defn dumb-wolf 
-	"Generates random wolf force vector"
-	[& args]
-	(repeatedly WOLVES #(list (- (rand) 0.5) (- (rand) 0.5)))
 )
 
 (defn fitness
 	"Returns percentage of sheep in pen after simulation has run for tmax steps"
 	([wolf-AI] (fitness wolf-AI nil))
 	([wolf-AI filename]
-		(let	[tmax 1000
-				 fout (if filename (clojure.java.io/writer filename) nil)
+		(let [tmax 1000
+				fout (if filename (clojure.java.io/writer filename) nil)
+				
+				wolf-pos (initialize-rand-arr	WOLVES 0 penx 0 peny)
+				wolf-vel (double-array (* 2 WOLVES) 0.0)
+				sheep-pos (initialize-rand-arr SHEEP (* 0.5 fieldx) (* 0.5 fieldx) 0 fieldy)
+				sheep-vel (initialize-rand-arr SHEEP 	(* -0.5 vmax-sheep) vmax-sheep 
+																	(* -0.5 vmax-sheep) vmax-sheep)
+				wolf-force (double-array (* 2 WOLVES))
+				sheep-force (double-array (* 2 SHEEP))
+				
+				args [wolf-pos wolf-vel sheep-pos sheep-vel]
 				]
-			; Writes initial simulation variables to file if argument filename is non-nil
+			; Suck it, immutable data structures!
+			
 			(if fout 
 				(.write fout 
-					(str	(.toString (field 0)) " 0 0 0 0 " 
-							(.toString (field 1)) " " (apply pr-str field) "\r\n"
-							(.toString (pen 0)) " 0 0 0 0 " (.toString (pen 1)) " " 
+					(str	(.toString fieldx) " 0 0 0 0 " 
+							(.toString fieldy) " " (apply pr-str field) "\r\n"
+							(.toString penx) " 0 0 0 0 " (.toString peny) " " 
 							(apply pr-str pen) "\r\n" (.toString WOLVES) " " 
-							(.toString SHEEP) " " (.toString tmax) "\r\n"
-					)
-				)
-			)
+							(.toString SHEEP) " " (.toString (inc tmax)) "\r\n"
+							(pr-arr wolf-pos) " " (pr-arr sheep-pos) "\r\n")))
 			
-			(loop	[t 1
-					 ; Wolves are placed randomly inside pen area, with no velocity
-					 wolf-pos	(nestedmap * 	(repeat WOLVES pen) 
-														(repeatedly #(list (rand) (rand)))) 
-					 wolf-vel	(repeat WOLVES [0 0])
-					 ; Sheep are placed randomly in right half of field with random velocities
-					 sheep-pos	(nestedmap *	(repeat SHEEP field)
-														(repeatedly #(list (+ (rand 0.5) 0.5) (rand))))
-					 sheep-vel	(nestedmap *	(repeat SHEEP [vmax-sheep vmax-sheep])
-														(repeatedly #(list (- (rand) 0.5) (- (rand) 0.5))))
-					]
-							 				
-				(if (= t tmax)
-					; Simulation is over!
-					(do 	(when fout 
-								(.write fout (str (apply pr-str (flatten wolf-pos)) 
-														" " 
-														(apply pr-str (flatten sheep-pos)) 
-														"\r\n"))
-								(.close fout))
-							; Return percentage of sheep inside pen
-							(/ (count (filter #(every? identity (map < % pen)) sheep-pos)) SHEEP)
-					)
-					; Keep going				
-					(let [; values to be passed to the GAs should be placed here
-							args '(1 2 3) 
-							
-							; wolf-AI is expected to return a list of wolf forces:
-							; ( [F_x F_y] [F_x F_y] ...)
-							wolf-force	(wolf-AI args)
-							sheep-force	(map #(calc-sheep-f % wolf-pos sheep-pos) sheep-pos)
-							
-							new-wolf-vel	(nestedmap + wolf-vel wolf-force)
-							new-sheep-vel	(nestedmap + sheep-vel sheep-force)
-							
-							; rescale velocities larger than maximum
-							new-wolf-vel	(map (partial rescale-vec vmax-wolf) new-wolf-vel)
-							new-sheep-vel	(map (partial rescale-vec vmax-sheep) new-sheep-vel)
-							
-							temp-wolf-pos	(nestedmap + wolf-pos new-wolf-vel)
-							temp-sheep-pos	(nestedmap + sheep-pos new-sheep-vel)
-							
-							; check for fence penetrations and resolve
-							new-wolf-pos	(map fence-check wolf-pos temp-wolf-pos)
-							new-sheep-pos	(map fence-check sheep-pos temp-sheep-pos)
-							
-							; set penetrating velocities to 0
-							new-wolf-vel 	(nestedmap #(if (= %2 %3) %1 0)
-																new-wolf-vel
-																temp-wolf-pos
-																new-wolf-pos)
-							new-sheep-vel	(nestedmap #(if (= %2 %3) %1 0)
-																new-sheep-vel
-																temp-sheep-pos
-																new-sheep-pos)
-							]
-						; output wolf and sheep positions
-						(if fout 
-							(.write fout	
-								(str 	(apply pr-str (flatten wolf-pos)) " " 
-										(apply pr-str (flatten sheep-pos)) "\r\n"
-								)
-							)
-						)
-						(recur	(inc t)
-									new-wolf-pos
-									new-wolf-vel
-									new-sheep-pos
-									new-sheep-vel
-						)
-					)
-				)
+			(loop [t 1]
+				(wolf-AI args wolf-force)
+				(calc-sheep-f wolf-pos sheep-pos sheep-force)
+				(updatev wolf-vel wolf-force vmax-wolf vmax-wolf2)
+				(updatev sheep-vel sheep-force vmax-sheep vmax-sheep2)
+				(updatepos wolf-pos wolf-vel)
+				(updatepos sheep-pos sheep-vel)
+				(if fout 
+					(.write fout (str (pr-arr wolf-pos) " " (pr-arr sheep-pos) "\r\n")))
+				(if (< t tmax) (recur (inc t)))		
 			)
+			(if fout 
+				(.close fout))
+			(eval-fitness wolf-pos sheep-pos)
 		)
 	)
 )
+
+
