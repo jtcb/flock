@@ -19,9 +19,9 @@
 (def dist-wolf 30)
 ; Force magnitudes
 (def force-fence 1)
-(def force-wolf 1)
+(def force-wolf 5)
 (def force-sheep-attract 0.1)
-(def force-sheep-repel 0.033)
+(def force-sheep-repel 0.05)
 (def force-pen 0.1)
 ; Maximum velocities
 (def vmax-sheep 1)
