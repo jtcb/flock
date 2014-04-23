@@ -3,19 +3,27 @@
 (set! *unchecked-math* true)
 
 ; Simulation parameters
-(def SHEEP 20)
 (def WOLVES 1)
+(def SHEEP 20)
+; Field/Pen [width, height].  Both have upper left corner located at (0,0)
 (def field [100 100])
 (def pen [25 25])
+; If creature penetrates a fence, the penetrating coordinate is randomly
+; reset to within fence-spawn distance of the fence.  This is done to
+; prevent sheep-stacking in the corners
 (def fence-spawn 0.5)
+
+; Force ranges
 (def dist-fence 5)
 (def dist-sheep 20)
 (def dist-wolf 30)
+; Force magnitudes
 (def force-fence 1)
 (def force-wolf 1)
 (def force-sheep-attract 0.1)
 (def force-sheep-repel 0.033)
 (def force-pen 0.1)
+; Maximum velocities
 (def vmax-sheep 1)
 (def vmax-wolf (* 3 vmax-sheep))
 
@@ -36,7 +44,10 @@
 (def vmax-wolf2 (* vmax-wolf vmax-wolf))
 (def vmax-sheep2 (* vmax-sheep vmax-sheep))
 
-(defmacro pr-arr [x]
+(defmacro pr-arr
+	"Converts primitive array to a string without the 
+	annoying formatting of toString"
+	[x]
 	`(.replace
 		(.replace
 			(.replace (Arrays/toString ~x) 
@@ -47,11 +58,14 @@
 (defmacro sqr [x] `(* ~x ~x))
 
 (defmacro ainc
+	"arr[idx] += val"
 	[arr idx val]
 	`(aset ~arr ~idx (+ (aget ~arr ~idx) ~val))
 )
 
-(defmacro forloop [idx start end increment & body]
+(defmacro forloop
+	"For when you get tired of writing loop and recur everywhere"
+	[idx start end increment & body]
 	`(loop [~idx ~start]
 		(when (< ~idx ~end)
 			~@body
@@ -59,8 +73,8 @@
 )
 
 (defn initialize-rand-arr
-	"Returns an array with (size) pairs of elements, the first of which
-	ranges from (start1) to (start1+range1), the second of which ranges
+	"Returns an array with (size) pairs of random elements, the first of 
+	which	ranges from (start1) to (start1+range1), the second of which ranges
 	from (start2) to (start2+range2)"
 	^doubles [size start1 range1 start2 range2]
 	(let [size (* 2 size)
@@ -74,6 +88,7 @@
 )
 
 (defn eval-fitness
+	"Called at end of simulation, returns fraction of sheep in pen"
 	[^doubles wolf-pos ^doubles sheep-pos]
 	(loop [i 0 count 0]
 		(if (< i (alength sheep-pos))
@@ -84,12 +99,14 @@
 			(/ count SHEEP))))
 
 (defn dumb-wolf
+	"Writes random values to (f) array"
 	[args ^doubles f]
 	(forloop i 0 (alength f) 1
 		(aset f i (- (Math/random) 0.5)))
 )
 
 (defn calc-sheep-f
+	"Calculates force on each sheep and writes result to (f) array"
 	[^doubles wolf-pos ^doubles sheep-pos ^doubles f]
 	(forloop i 0 (alength sheep-pos) 2
 		(let [j (inc i)
@@ -97,6 +114,11 @@
 				y (aget sheep-pos j)]
 				(aset f i 0.0)
 				(aset f j 0.0)
+				
+				; Fence forces - If sheep is within dist-fence of a fence
+				; then it experiences a force which grows linearly from 0
+				; at dist-fence away, to force-fence at the fence
+				
 				; Left fence force
 				(if (< x dist-fence)
 					(ainc f i (-> dist-fence (- x) (* fratio))))
@@ -114,15 +136,21 @@
 					(ainc f i (-> (if (< x penx) penxbl penxbr)
 										(- x) (* fratio))))
 										
-				; Pen attractive force
+				; Pen force - If sheep is within the boundaries of the pen
+				; then it experience a force of magnitude force-pen toward
+				; the direction of the pen center
+							
 				(if (and (< x penx) (< y peny))
 					(let [px (- pencenterx x)
 							py (- pencentery y)
 							ratio (/ force-pen (Math/sqrt (+ (sqr px) (sqr py))))]
 						(ainc f i (* px ratio))
 						(ainc f j (* py ratio))))
+						
+				; Wolf force - If sheep is within dist-wolf of a wolf, it 
+				; experiences a 1/r^2 repulsive force whose strength scales 
+				; with force-wolf.  This is offset to be 0 at dist-wolf.
 				
-				; Wolf force
 				(forloop k 0 (alength wolf-pos) 2
 					(let [wx (- x (aget wolf-pos k))
 							wy (- y (aget wolf-pos (inc k)))
@@ -136,7 +164,12 @@
 								(ainc f i (* mag wx))
 								(ainc f j (* mag wy))))))
 				
-				; Sheep force
+				; Sheep force - If sheep is within dist-sheep of another sheep,
+				; it experiences 2 forces: a constant attractive force with
+				; magnitude force-sheep-attract, as well as a repulsive 1/r^2 
+				; force whose strength is set by force-sheep-repel.  
+				; The repulsive force is offset to be 0 at dist-sheep.
+				
 				(forloop k 0 (alength sheep-pos) 2
 					(let [sx (- x (aget sheep-pos k))
 							sy (- y (aget sheep-pos (inc k)))
@@ -155,6 +188,8 @@
 )
 
 (defn updatev
+	"Adds f to v, then checks that the resultant velocities
+	do not exceed maxv.  If so, velocities are rescaled"
 	[^doubles v ^doubles f ^double maxv ^double maxv2]
 	(loop [i 0]
 		(if (< i (alength v))
@@ -173,6 +208,7 @@
 			))))
 			
 (defn updatepos
+	"Adds vel to pos, then checks/resolves fence penetrations"
 	[^doubles pos ^doubles vel]
 	(forloop i 0 (alength pos) 2
 		(let [j	(inc i)
