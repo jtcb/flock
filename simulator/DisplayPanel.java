@@ -62,7 +62,7 @@ public class DisplayPanel extends JPanel {
 
 			width = pen[0][0] - pen[1][0];
         	height = pen[3][1] - pen[0][1];
-			rect = new Rectangle2D.Double(x0 + pen[2][0]*scale, y0 + pen[2][1]*scale, width*scale, height*scale);
+			rect = new Rectangle2D.Double(x0 + pen[1][0], y0 + pen[1][1], width*scale, height*scale);
 			g2.setPaint(Color.GRAY);
 			g2.fill(rect);
 
@@ -71,7 +71,7 @@ public class DisplayPanel extends JPanel {
 
         if (init && t >= 0) {
 			// Draw wolves and sheep:
-        	for (int i=0; i<numWolves; i++) {        		
+        	for (int i=0; i<numWolves; i++) {
 				double x = positions[i][t][0];
 				double y = positions[i][t][1];
 				AffineTransform transform = new AffineTransform(1, 0, 0, 1, x*scale + x0, y*scale + y0);
@@ -101,7 +101,7 @@ public class DisplayPanel extends JPanel {
 		init = true;
 		repaint();
 	}
-	
+
 	public void resetT() {
 		t = 0;
 		repaint();
