@@ -40,8 +40,8 @@ public class Simulator extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private static int FRAME_WIDTH=1100, FRAME_HEIGHT=600;
 	private JFrame frame;
-	
-	
+
+
 
 	////////////////////////////////////////// Setup /////////////////////////////////////////////////////
 
@@ -86,7 +86,7 @@ public class Simulator extends JPanel {
 				display.updateDisplay();
 			}
 		});
-		
+
 		/* Timer sends signals to display: */
 		final ActionListener timerListener = new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -95,7 +95,7 @@ public class Simulator extends JPanel {
 			}
 		};
 		timer = new Timer(milliseconds, timerListener);
-		
+
 		/* Play button: */
 		JButton playButton = new JButton("Run");
 		buttonsPanel.add(playButton);
@@ -104,7 +104,7 @@ public class Simulator extends JPanel {
 				timer.start();
 			}
 		});
-		
+
 		/* Pause button: */
 		JButton pauseButton = new JButton("Pause");
 		buttonsPanel.add(pauseButton);
@@ -113,7 +113,7 @@ public class Simulator extends JPanel {
 				timer.stop();
 			}
 		});
-		
+
 		/* Pause button: */
 		JButton restartButton = new JButton("Restart");
 		buttonsPanel.add(restartButton);
@@ -123,8 +123,8 @@ public class Simulator extends JPanel {
 				display.resetT();
 			}
 		});
-		
-		
+
+
 		/* Scroll bar to control playback speed: */
 		final JScrollBar speedBar = new JScrollBar(JScrollBar.HORIZONTAL);
 		speedBar.setMinimum(1);
@@ -136,7 +136,7 @@ public class Simulator extends JPanel {
 				milliseconds = speedBar.getValue();
 				timer.stop();
 				timer = new Timer(milliseconds, timerListener);
-				
+
 			}
 		});
 
@@ -183,7 +183,7 @@ public class Simulator extends JPanel {
 		add(readMsg, BorderLayout.NORTH);
 
 		// Add display area:
-		
+
 		displayContents = new JTextArea();
 		displayContents.setEditable(false);
 		JScrollPane scrollContents = new JScrollPane(displayContents);
@@ -233,17 +233,17 @@ public class Simulator extends JPanel {
 		String disp = "";
 		disp += "Number of wolves: " + numWolves + "\n";
 		disp += "Number of sheep: " + numSheep + "\n";
-		disp += "\n-------------------------------\n";
+		/*disp += "\n-------------------------------\n";
 		for (t=0; t < T; t++) {
 			for (int i=0; i < numWolves + numSheep; i++) {
 					disp += "("+positions[i][t][0]+","+positions[i][t][1]+")\t";
 			}
 			disp += "\n";
-		}
+		}*/
 		displayContents.setText(disp);
 		readData = true;
 	}
-	
+
 	public static void main(String[] args) {
 		javax.swing.SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
