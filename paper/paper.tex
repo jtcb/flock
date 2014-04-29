@@ -1,0 +1,138 @@
+\documentclass[12pt,twocolumn]{article}
+
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{url} 
+
+\usepackage{float}
+\usepackage{lingmacros}
+\usepackage{tree-dvips}
+\usepackage{graphicx}
+\usepackage{supertabular}
+\usepackage{array}
+\usepackage[english]{babel}
+
+\usepackage{multicol}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Title and Abstract %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+\begin{multicols}{1}
+\title{Evolving Shepherding Behavior with a Genetic Programming Algorithm}
+\author{
+Josh Brule \\
+Department of Computer Science \\
+University of Maryland \\
+{\tt jtcbrule@gmail.com} \\
+\and
+Kevin Engel \\
+Department of Computer Science \\
+University of Maryland \\
+{\tt kevin.t.engel@gmail.com} \\
+\and
+Nick Fung \\
+Department of Computer Science \\
+University of Maryland \\
+{\tt nfung13@gmail.com} \\
+\and
+Isaac Julien \\
+Department of Computer Science \\
+University of Maryland \\
+{\tt ijulien6@gmail.com} \\
+ }
+\date{}
+
+\begin{document}
+\maketitle
+\end{multicols}
+
+
+\begin{abstract}
+
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Introduction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\section{Introduction}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Related Work %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Related Work}
+
+While flocking is a popular topic, algorithms for shepherding are less well-studied, and to the best of our knowledge
+no existing work attempts to evolve such an algorithm with Genetic Programming. Existing approaches to sheparding
+train a predictive model as in\cite{sumpter}, or employ predefined strategies which may be combined to acheive a
+goal \cite{bennet}.
+
+(Lien et. al, 2005) studies shepherding behavior in an environment with multiple shepherds cooperating to control a flock \cite{lien}.
+Shepherds, which exert a repulsive force on the flock, must find \emph{steering points} to influence the direction of the flock as
+desired. The steering points for the group of shepherds form either a line or an arc on a side of the flock, and each shepard
+chooses a steering point to approach based on one of several proposed heuristics.
+
+(Sumpter, et. al, 1998) presents a machine vision system that models the position and velocity of a flock of animals \cite{sumpter}.
+A Point Distribution Mode is used to generate features based on input from a camera mounted on a "Robotic Sheepdog,"
+and these features are then used to estimate a probability distribution of the movement of the flock over time, conditional on its
+previous locations and velocities. This probability distribution is estimated using competitive learning in a neural network.
+Finally, the robot can herd a flock of animals toward a goal by a maximum likelihood estimate of the robot's own path.
+
+(Bennet and Trafankowski, 2012) provides an analysis of flocking and herding algorithms, and also introduces a
+herding algorithm based on specific strategies inspired by real sheepdogs\cite{bennet}.
+\cite{bennet} also considers using one of several flocking strategies for the animals being herded, and finds
+that the success of different a herding algorithm is often dependent on the flocking behavior.
+
+(Cowling and Gmeinwieser, 2010) uses a combined top-down and bottom-up approach to provide realistic sheep herding
+in the context of a game. A finite state machine associated with each sheepdog represents possible herding strategies,
+such as circling, and the state of the FSM is controlled at the top level by an AI "shepherd" \cite{cowling}.
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Results %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Results}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Discussion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Discussion}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Bibliography %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{thebibliography}{9}
+
+
+\bibitem{bennet}
+Brandon Bennett and Matthew Trafankowski.
+\emph{A Comparative Investigation of Herding Algorithms}.
+2012; In proceeding of: Proceedings of the Symposium on Understanding and Modelling Collective Phenomena (UMoCoP) at the Artificial Intelligence and Simulation of Behviour World Congress (AISB-12)
+
+\bibitem{sumpter}
+N. Sumpter, A.J. Rulpitt, R. Vaughan, R.D. Tillett, and R.D. Boylel.
+\emph{Learning Models of Animal Behaviaur for a Robotic Sheepdog}
+1998; IAPR Wotkrhop on Machine Vision Applications. Nov 17-t9. 19%. MAuhan. Chlha Japan
+
+\bibitem{cowling}
+Peter Cowling and Christian Gmeinwieser.
+\emph{AI for Herding Sheep}
+2010; Proceedings of the Sixth AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment.
+
+
+\bibitem{lien}
+Jyh-Ming Lien, Samuel Rodriguez, Jean-Phillipe Malric, and Nancy M. Amato.
+\emph{Shepherding Behaviors with Multiple Shepherds}.
+2005. Proceedings of the 2005 IEEE International Conference on Robotics and Automation
+
+\end{thebibliography}
+
+
+
+
+\end{document}
