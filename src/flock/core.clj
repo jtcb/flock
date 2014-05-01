@@ -220,11 +220,7 @@
 ;; Actual GP system
 
 (defn calculate-fitness
-  "Wrapper to flock.fitness/fitness
-
-   Note: (to-lambda genotype) will convert to anonymous function of params
-  
-   TODO: implement"
+  "Wrapper to flock.fitness/fitness"
   [genotype] 
   (f/fitness (to-lambda genotype)))
 
@@ -385,3 +381,4 @@
 	 (println "GA fitness:" (nth (:fitness final-population) best-index))
 	 (println "Recorded fitness:" (f/fitness (to-lambda best-genotype) "simulator/test.txt")) 
 	 )))
+

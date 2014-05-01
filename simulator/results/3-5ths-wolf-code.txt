@@ -1,0 +1,47 @@
+flock.core=> (-main)
+Running
+---
+(fn [wx wy nfsx nfsy avgx avgy]
+  (pair
+    (qif
+      (-
+        (+ (* wx nfsx) (* avgx 7.636755100377311))
+        (div (*-1 nfsx) (- avgy 5.227143040591859)))
+      (div
+        (div
+          (+
+            -9.655274978504828
+            (+ (div wy nfsx) (qif 8.798063425913643 wy avgx avgx)))
+          (* avgx -1.79340421337064))
+        (- (+ nfsx 11.774191693589906) (+ 4.823388776038026 wx)))
+      (qif
+        (+
+          (qif
+            14.237266402985757
+            nfsx
+            (+ (* nfsx 6.77126278745952) (div 1.2787697508452178 wy))
+            10.966740210828494)
+          (*-1 avgx))
+        (qif
+          (* nfsy nfsy)
+          (div avgy nfsy)
+          (+ -16.022840725110914 nfsy)
+          nfsy)
+        (*-1 (*-1 nfsx))
+        (*-1 (+ nfsy nfsy)))
+      (*
+        (* (qif nfsx nfsx wy wy) (- nfsy wx))
+        (* (*-1 avgx) (- wx nfsy))))
+    (div
+      (div
+        (+ (* avgx avgy) (* wx avgy))
+        (div (div wx wy) (+ 4.791472610423231 avgx)))
+      (+
+        (div
+          (qif 0.6929373407271056 wx 8.317899985589323 nfsx)
+          (qif wy avgx avgy avgy))
+        (+ (qif wx nfsx 25.468726482265502 nfsx) (+ avgy wx))))))
+
+GA fitness: 3/4
+Recorded fitness: 3/5
+nil
