@@ -225,8 +225,8 @@
    Note: (to-lambda genotype) will convert to anonymous function of params
   
    TODO: implement"
-  [genotype]
-  (- (count (flatten genotype))))
+  [genotype] 
+  (f/fitness (to-lambda genotype)))
 
 (defn roulette
   "Select one of m's keys with probability proportional to its value.
@@ -258,7 +258,6 @@
 
     {:genotype population, :fitness fits}))
 
-
 (defn tournament
   "Out of k randomly selected genotypes, return the one with best fitness."
   [population k]
@@ -267,7 +266,6 @@
       (for [i (range k)
             :let [r (rand-int (count (:genotype population)))]]
         [(nth (:genotype population) r) (nth (:fitness population) r)]))))
-
 
 (defn next-generation
   "Generational GP, tournament selection, 1 elite clone"
@@ -311,12 +309,12 @@
 
   (let [population-size 100
         num-generations 10
-        initial-population (ramped-half-and-half population-size 5)
+        initial-population (ramped-half-and-half (/ population-size 2) 5)
         final-population (evolve initial-population num-generations)
-        last-clone (last (:genotype final-population))
-        last-fitness (last (:fitness final-population))]
-    (println "Fitness:" last-fitness)
-    (pprint-code (to-code last-clone))
+		  best-index (.indexOf (:fitness final-population) 
+                              (apply max (:fitness final-population)))
+        best-genotype (nth (:genotype final-population) best-index)]
+    (pprint-code (to-code best-genotype))
     (println)
-    (pprint-code final-population))))
-
+	 (println "Fitness:" (f/fitness (to-lambda best-genotype) "simulator/test.txt"))
+	 )))
