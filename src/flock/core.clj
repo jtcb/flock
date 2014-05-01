@@ -304,6 +304,74 @@
     population 
     (recur (next-generation population) (- n 1))))
 
+(defn simple-dog
+	"Writes simple logic values to (f) array"
+	[args ^doubles f]
+  (def dogx (aget (nth args 0) 0))
+  (def dogy (aget (nth args 0) 1))
+  (def sheepx (aget (nth args 2) 0))
+  (def sheepy (aget (nth args 2) 1))
+;  (aset f 0 0.0)
+;  (aset f 1 -1.0)
+;  (println "sheepx:" sheepx "sheepy:" sheepy "dogx:" dogx "dogy:" dogy)
+  (def dogv
+    (pair
+      ; set x
+      (qif dogx 25 
+        (qif dogy 25
+          0.0
+          (qif sheepx 25
+            (qif sheepy 25
+              0.6    ; sheep in pen, walk out to find another
+              0.0)
+            (qif (+ sheepx 15) dogx
+              -0.6
+              0.6)
+            ))
+        (qif sheepx 25
+          (qif sheepy 25
+            0.6    ; sheep in pen, walk out to find another
+            (qif (+ sheepx 15) dogx
+              -0.4
+              0.4))
+          (qif (+ sheepx 15) dogx
+            -1.0
+            1.0)))
+      ; set y
+      (qif dogx 25 
+        (qif dogy 25
+          2.0
+          (qif sheepx 25
+            (qif sheepy 25
+              0.6    ; sheep in pen, walk out to find another
+              (qif (+ sheepy 10) dogy
+                -0.6
+                0.6))
+            (qif sheepx 30
+              (qif sheepy 25
+                -3.0
+                0.0)
+              1.0)))
+        (qif sheepx 25
+          (qif sheepy 25
+            0.6    ; sheep in pen, walk out to find another
+            (qif (+ 15 sheepy) dogy
+              -1.0
+              1.0))
+          (qif sheepx 30
+            (qif sheepy 25
+              -3.0
+              0.0)
+            (qif (+ 15 sheepy) dogy
+              -1.0
+              1.0))))
+      )
+    )
+
+    (aset f 0 (nth dogv 0))
+    (aset f 1 (nth dogv 1))
+  )
+
 (defn -main
   "Executed via $ lein run" 
   [& args]
