@@ -31,7 +31,7 @@
 
 (def params 
   "Formal parameters of generated gp functions."
-  ['x 'y 'z])
+  ['wx 'wy 'nfsx 'nfsy 'avgx 'avgy])
 
 (def k
   "k-selection for tournament"
@@ -304,11 +304,11 @@
 
 (defn simple-dog
 	"Writes simple logic values to (f) array"
-	[args ^doubles f]
-  (def dogx (aget (nth args 0) 0))
-  (def dogy (aget (nth args 0) 1))
-  (def sheepx (aget (nth args 2) 0))
-  (def sheepy (aget (nth args 2) 1))
+	[wx wy nfsx nfsy & therest]
+  (def dogx wx)
+  (def dogy wy)
+  (def sheepx nfsx)
+  (def sheepy nfsy)
 ;  (aset f 0 0.0)
 ;  (aset f 1 -1.0)
 ;  (println "sheepx:" sheepx "sheepy:" sheepy "dogx:" dogx "dogy:" dogy)
@@ -365,9 +365,7 @@
               1.0))))
       )
     )
-
-    (aset f 0 (nth dogv 0))
-    (aset f 1 (nth dogv 1))
+	 dogv
   )
 
 (defn -main
@@ -384,5 +382,6 @@
         best-genotype (nth (:genotype final-population) best-index)]
     (pprint-code (to-code best-genotype))
     (println)
-	 (println "Fitness:" (f/fitness (to-lambda best-genotype) "simulator/test.txt"))
+	 (println "GA fitness:" (nth (:fitness final-population) best-index))
+	 (println "Recorded fitness:" (f/fitness (to-lambda best-genotype) "simulator/test.txt")) 
 	 )))
