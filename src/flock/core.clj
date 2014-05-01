@@ -7,10 +7,6 @@
   "Instance of Java Random object for global use (threadsafe)."
   (Random.))
 
-(def pair
-  "Representation for returning a pair of objects. Currently, aliased to list"
-  list)
-
 ;; Parameters of the GP system
 
 (def sigma
@@ -37,6 +33,14 @@
   "Formal parameters of generated gp functions."
   ['x 'y 'z])
 
+(def k
+  "k-selection for tournament"
+  2)
+
+(def pm
+  "Probability of mutation. P(crossover) = 1 - pm"
+  0.05)
+
 (def terminals
   "Terminals of generated gp functions.
    
@@ -49,6 +53,10 @@
   (into params terminals))
 
 ;; Special GP functions
+
+(def pair
+  "Representation for returning a pair of objects. Currently, aliased to list"
+  list)
 
 (defn div
   "Protected division. Division by zero returns 1."
@@ -211,14 +219,14 @@
 
 ;; Actual GP system
 
-(defn stupid-fitness
-  "Fitness is the absolute value of the sum of the results of the function
-   applied at 0."
-  [phenotype]
-  (Math/abs
-    (apply + 
-      (apply phenotype
-        (for [i (range (count params))] 0)))))
+(defn calculate-fitness
+  "Wrapper to flock.fitness/fitness
+
+   Note: (to-lambda genotype) will convert to anonymous function of params
+  
+   TODO: implement"
+  [genotype]
+  (- (count (flatten genotype))))
 
 (defn roulette
   "Select one of m's keys with probability proportional to its value.
@@ -234,10 +242,8 @@
         (recur (- i weight) remaining)))))
 
 
-(defn ramped-half-and-half
-  "ALPHA - code not thorougly tested
-  
-   Ramped half and half method to generate initial population.
+(defn ramped-half-and-half 
+  "Ramped half and half method to generate initial population.
    Generates 2 * half-size with half-size many trees generated to ramp-depth
    and the other half generated randomly.
   
@@ -247,21 +253,70 @@
                (new-genotype (min ramp-depth maximum-depth) :p-leaf 0))
         random (for [i (range 0 half-size)]
                  (new-genotype maximum-depth))
-        population (concat full random)
-        fits (map #(stupid-fitness (to-lambda %)) population)]
-    (zipmap population fits)))
+        population (into [] (concat full random))
+        fits (into [] (map #(calculate-fitness %) population))]
 
-(defn main
-  "Examples and stuff"
+    {:genotype population, :fitness fits}))
+
+
+(defn tournament
+  "Out of k randomly selected genotypes, return the one with best fitness."
+  [population k]
+  (first
+    (apply max-key #(second %)
+      (for [i (range k)
+            :let [r (rand-int (count (:genotype population)))]]
+        [(nth (:genotype population) r) (nth (:fitness population) r)]))))
+
+
+(defn next-generation
+  "Generational GP, tournament selection, 1 elite clone"
+  [population]
+  (let [pop-size (count (:genotype population))
+        best-index (.indexOf (:fitness population) 
+                              (apply max (:fitness population)))
+        elite-genotype (nth (:genotype population) best-index)
+        elite-fitness (nth (:fitness population) best-index)
+        new-genotypes
+          (loop [new-genes (vector)]
+            (cond
+              (= (count new-genes) (dec pop-size)) ; finished
+                new-genes
+              (> (count new-genes) (dec pop-size)) ; extra genotype
+                (pop new-genes) 
+              (< (rand) pm)                        ; mutate
+                (let [parent (tournament population k)]
+                  (recur (conj new-genes (mutate parent))))
+              :else
+                (let [p1 (tournament population k)
+                      p2 (tournament population k)]
+                  (recur (into new-genes (crossover p1 p2))))))
+        new-fitness
+          (into [] (map #(calculate-fitness %) new-genotypes))]
+     
+    {:genotype (conj new-genotypes elite-genotype),
+     :fitness (conj new-fitness elite-fitness)}))
+
+(defn evolve
+  "Return the population after n rounds of evolution."
+  [population n]
+  (if (<= n 0)
+    population 
+    (recur (next-generation population) (- n 1))))
+
+(defn -main
+  "Executed via $ lein run" 
   [& args]
-  ;; population is map from genotypes to fitness
-  ;; (to-lambda g) converts genotype to phenotype
-  ;; (roulette map) implements fitness proportional selection
-  ;; (mutate g) returns the result of mutating g
-  ;; (crossover p1 p2) performs crossover; returning a list of new genotypes
-  (let [population (ramped-half-and-half 10 5)
-        some-genotype (roulette population)]
-    (pprint-code (to-code some-genotype))
-    ))
-  
- 
+  (do (print "Running ") (apply print args) (println) (println "---")
+
+  (let [population-size 100
+        num-generations 10
+        initial-population (ramped-half-and-half population-size 5)
+        final-population (evolve initial-population num-generations)
+        last-clone (last (:genotype final-population))
+        last-fitness (last (:fitness final-population))]
+    (println "Fitness:" last-fitness)
+    (pprint-code (to-code last-clone))
+    (println)
+    (pprint-code final-population))))
+
