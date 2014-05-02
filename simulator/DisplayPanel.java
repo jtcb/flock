@@ -29,6 +29,9 @@ public class DisplayPanel extends JPanel {
 	double scale = 5;
 	double x0 = 50, y0 = 50;
 
+	double wolf_ctr = 30;
+	double sheep_ctr = 20;
+
 
 	Image sheep;
 	Image wolf;
@@ -59,7 +62,6 @@ public class DisplayPanel extends JPanel {
 			Rectangle2D.Double rect = new Rectangle2D.Double(x0, y0, width*scale, height*scale);
 			g2.draw(rect);
 
-
 			width = pen[0][0] - pen[1][0];
         	height = pen[3][1] - pen[0][1];
 			rect = new Rectangle2D.Double(x0 + pen[1][0], y0 + pen[1][1], width*scale, height*scale);
@@ -67,6 +69,7 @@ public class DisplayPanel extends JPanel {
 			g2.fill(rect);
 
 			g2.setPaint(Color.BLACK);
+
         }
 
         if (init && t >= 0) {
@@ -74,15 +77,20 @@ public class DisplayPanel extends JPanel {
         	for (int i=0; i<numWolves; i++) {
 				double x = positions[i][t][0];
 				double y = positions[i][t][1];
-				AffineTransform transform = new AffineTransform(1, 0, 0, 1, x*scale + x0, y*scale + y0);
+				AffineTransform transform = new AffineTransform(1, 0, 0, 1, x*scale + x0 - wolf_ctr, y*scale + y0 - wolf_ctr);
 				g2.drawImage(wolf, transform, null);
 			}
 			for (int i=numWolves; i<numWolves+numSheep; i++) {
 				double x = positions[i][t][0];
 				double y = positions[i][t][1];
-				AffineTransform transform = new AffineTransform(1, 0, 0, 1, x*scale + x0, y*scale + y0);
+				AffineTransform transform = new AffineTransform(1, 0, 0, 1, x*scale + x0 - sheep_ctr, y*scale + y0 - sheep_ctr);
 				g2.drawImage(sheep, transform, null);
 			}
+
+			// draw line:
+			g2.setPaint(Color.BLUE);
+			g2.draw(new Line2D.Double(25*scale+x0, 0+y0, 25*scale+x0, 25*scale+y0));
+			g2.setPaint(Color.BLACK);
 
         }
 

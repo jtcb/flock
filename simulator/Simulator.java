@@ -38,7 +38,7 @@ public class Simulator extends JPanel {
 	private int milliseconds = 100;
 
 	private static final long serialVersionUID = 1L;
-	private static int FRAME_WIDTH=1100, FRAME_HEIGHT=600;
+	private static int FRAME_WIDTH=1330, FRAME_HEIGHT=660;
 	private JFrame frame;
 
 
@@ -168,6 +168,7 @@ public class Simulator extends JPanel {
 		            	readMsg.setText("File not found.");
 		            }
 		            catch (Exception exc) {
+		            	exc.printStackTrace();
 		            	readMsg.setText("Something went wrong.");
 		            }
 		        }
