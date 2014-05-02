@@ -299,73 +299,63 @@
     (recur (next-generation population) (- n 1))))
 
 (defn simple-dog
-	"Writes simple logic values to (f) array"
-	[wx wy nfsx nfsy & therest]
-  (def dogx wx)
-  (def dogy wy)
-  (def sheepx nfsx)
-  (def sheepy nfsy)
-;  (aset f 0 0.0)
-;  (aset f 1 -1.0)
-;  (println "sheepx:" sheepx "sheepy:" sheepy "dogx:" dogx "dogy:" dogy)
-  (def dogv
-    (pair
-      ; set x
-      (qif dogx 25 
-        (qif dogy 25
-          0.0
-          (qif sheepx 25
-            (qif sheepy 25
-              0.6    ; sheep in pen, walk out to find another
-              0.0)
-            (qif (+ sheepx 15) dogx
-              -0.6
-              0.6)
-            ))
+  "Writes simple logic values to (f) array"
+  [dogx dogy sheepx sheepy & therest]    
+  (pair
+    ; set x
+    (qif dogx 25 
+      (qif dogy 25
+        0.0
         (qif sheepx 25
           (qif sheepy 25
             0.6    ; sheep in pen, walk out to find another
-            (qif (+ sheepx 15) dogx
-              -0.4
-              0.4))
+            0.0)
           (qif (+ sheepx 15) dogx
-            -1.0
-            1.0)))
-      ; set y
-      (qif dogx 25 
-        (qif dogy 25
-          2.0
-          (qif sheepx 25
-            (qif sheepy 25
-              0.6    ; sheep in pen, walk out to find another
-              (qif (+ sheepy 10) dogy
-                -0.6
-                0.6))
-            (qif sheepx 30
-              (qif sheepy 25
-                -3.0
-                0.0)
-              1.0)))
+            -0.6
+            0.6)
+          ))
+      (qif sheepx 25
+        (qif sheepy 25
+          0.6    ; sheep in pen, walk out to find another
+          (qif (+ sheepx 15) dogx
+            -0.4
+            0.4))
+        (qif (+ sheepx 15) dogx
+          -1.0
+          1.0)))
+    ; set y
+    (qif dogx 25 
+      (qif dogy 25
+        2.0
         (qif sheepx 25
           (qif sheepy 25
             0.6    ; sheep in pen, walk out to find another
-            (qif (+ 15 sheepy) dogy
-              -1.0
-              1.0))
+            (qif (+ sheepy 10) dogy
+              -0.6
+              0.6))
           (qif sheepx 30
             (qif sheepy 25
               -3.0
               0.0)
-            (qif (+ 15 sheepy) dogy
-              -1.0
-              1.0))))
-      )
-    )
-	 dogv
+            1.0)))
+      (qif sheepx 25
+        (qif sheepy 25
+          0.6    ; sheep in pen, walk out to find another
+          (qif (+ 15 sheepy) dogy
+            -1.0
+            1.0))
+        (qif sheepx 30
+          (qif sheepy 25
+            -3.0
+            0.0)
+          (qif (+ 15 sheepy) dogy
+            -1.0
+            1.0))))
   )
+)
 
-(defn -main
-  "Executed via $ lein run" 
+(defn main
+  "Run GP" 
   [& args]
   (do (print "Running ") (apply print args) (println) (println "---")
 
@@ -373,12 +363,13 @@
         num-generations 10
         initial-population (ramped-half-and-half (/ population-size 2) 5)
         final-population (evolve initial-population num-generations)
-		  best-index (.indexOf (:fitness final-population) 
-                              (apply max (:fitness final-population)))
+	best-index (.indexOf (:fitness final-population) 
+                             (apply max (:fitness final-population)))
         best-genotype (nth (:genotype final-population) best-index)]
     (pprint-code (to-code best-genotype))
     (println)
-	 (println "GA fitness:" (nth (:fitness final-population) best-index))
-	 (println "Recorded fitness:" (f/fitness (to-lambda best-genotype) "simulator/test.txt")) 
-	 )))
+    (println "GA fitness:" (nth (:fitness final-population) best-index))
+    (println "Recorded fitness:" (f/fitness (to-lambda best-genotype)
+                                            "simulator/test.txt")) 
+)))
 
