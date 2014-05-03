@@ -4,8 +4,7 @@ import numpy as np
 filename = "../simulator/test.txt"
 
 
-file = open(filename, 'w')
-num_wolves = 5
+num_wolves = 6
 num_sheep = 20
 T = 500
 
@@ -20,6 +19,7 @@ sheep_attract = 1
 sheep_repulse = 20
 max_v = 1
 
+wolf_distance = 40
 wolf_force = 10
 
 class Run:
@@ -67,8 +67,18 @@ class Run:
             for j in range(num_wolves):
                 xd =self.wx[j] - x
                 yd =self.wy[j] - y
-                fx[i] += wolf_force * (1/(xd+.01)) * -1
-                fy[i] += wolf_force * (1/(yd+.01)) * -1
+
+                sqdist = xd*xd+yd*yd
+                if sqdist < wolf_distance*wolf_distance:
+                    fx[i] += wolf_force * (1/(xd+.01)) * -1
+                    fy[i] += wolf_force * (1/(yd+.01)) * -1
+
+
+
+            # IF SHEEP IS IN PEN, KEEP IT THERE!
+            if x < 25 and y < 25:
+                fx[i] = -100.0
+                fy[i] = -100.0
 
 
             if fx[i] > 0:
@@ -110,19 +120,22 @@ class Run:
                self.wy[i] = 99
 
 
-    def fitness(self, plan, save=True):
+    def fitness(self, plan, filename, save=True):
 
         if save:
+            file = open("results/"+filename, 'w')
             file.write(field + '\n')
             file.write(pen + '\n')
             file.write(str(num_wolves) + ' ' + str(num_sheep) + ' ' + str(T) + '\n')
 
         for t in range(T):
-            for i in range(num_wolves):
-                file.write(str(self.wx[i]) + ' ' + str(self.wy[i]) + ' ')
-            for i in range(num_sheep):
-                file.write(str(self.sx[i]) + ' ' + str(self.sy[i]) + ' ')
-            file.write('\n')
+
+            if save:
+                for i in range(num_wolves):
+                    file.write(str(self.wx[i]) + ' ' + str(self.wy[i]) + ' ')
+                for i in range(num_sheep):
+                    file.write(str(self.sx[i]) + ' ' + str(self.sy[i]) + ' ')
+                file.write('\n')
 
             self.update_sheep()
             self.update_wolves(plan)
@@ -132,7 +145,9 @@ class Run:
         for i in range(num_sheep):
             if self.sx[i] < 25 and self.sy[i] < 25:
                 num += 1
-        print str(num)+"/"+str(len(self.sx))
+        #print str(num)+"/"+str(len(self.sx))
+
+        return num / float(num_sheep)
 
 
 
