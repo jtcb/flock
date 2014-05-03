@@ -260,14 +260,14 @@
 			sheep-vel ^doubles (args 3)
 			
 			; Put global calculations here:
-			sheep-x	(loop [i 0 sum 0.0]
-							(if (< i (alength sheep-pos))
-								(recur (+ i 2) (+ sum (aget sheep-pos i)))
-								(/ sum SHEEP)))
-			sheep-y	(loop [i 1 sum 0.0]
-							(if (< i (alength sheep-pos))
-								(recur (+ i 2) (+ sum (aget sheep-pos i)))
-								(/ sum SHEEP)))
+;			sheep-x	(loop [i 0 sum 0.0]
+;							(if (< i (alength sheep-pos))
+;								(recur (+ i 2) (+ sum (aget sheep-pos i)))
+;								(/ sum SHEEP)))
+;			sheep-y	(loop [i 1 sum 0.0]
+;							(if (< i (alength sheep-pos))
+;								(recur (+ i 2) (+ sum (aget sheep-pos i)))
+;								(/ sum SHEEP)))
 			]
 		(forloop i 0 (alength f) 2
 			(let [x	(aget wolf-pos i)
@@ -299,7 +299,7 @@
 													(aget sheep-pos (inc nfs)))
 													
 					; Put all parameters (other than wolf positions) in param list				
-					params	(list nearest-free-sheep-x nearest-free-sheep-y sheep-x sheep-y)
+					params	(list nearest-free-sheep-x nearest-free-sheep-y)
 					; Add other wolf positions to front of param list
 					params	(loop [j 0 lst params]
 									(if (< j (alength f))
@@ -334,7 +334,7 @@
 	"Returns percentage of sheep in pen after simulation has run for tmax steps"
 	([wolf-AI] (fitness wolf-AI nil))
 	([wolf-AI filename]
-		(let [tmax 1000
+		(let [tmax 500
 				fout (if filename (clojure.java.io/writer filename) nil)
 
 				wolf-pos (initialize-rand-arr	WOLVES 0 penx 0 peny)
@@ -377,4 +377,9 @@
 	)
 )
 
-
+(defn loopfitness
+	[wolf-AI n]
+	(loop [i 0 sum 0.0]
+		(if (< i n)
+			(recur (inc i) (+ sum (fitness wolf-AI)))
+			(/ sum n))))

@@ -31,7 +31,7 @@
 
 (def params 
   "Formal parameters of generated gp functions."
-  ['wx 'wy 'nfsx 'nfsy 'avgx 'avgy])
+  ['x 'y 'nfsx 'nfsy])
 
 (def k
   "k-selection for tournament"
@@ -39,7 +39,7 @@
 
 (def pm
   "Probability of mutation. P(crossover) = 1 - pm"
-  0.05)
+  0.1)
 
 (def terminals
   "Terminals of generated gp functions.
@@ -80,7 +80,8 @@
 (def ops
   "Map of: operations that can appear in a generated gp code => their arities
    TODO: Add more ops? (e.g. max/min, average)"
-  {'*-1 1, '+ 2, '- 2, '* 2 'div 2, 'qif 4})
+;  {'*-1 1, '+ 2, '- 2, '* 2 'div 2, 'qif 4})
+	{'+ 2, '- 2, '* 2 'qif 4})
 
 ;;
 ;; utility functions
@@ -222,7 +223,7 @@
 (defn calculate-fitness
   "Wrapper to flock.fitness/fitness"
   [genotype] 
-  (f/fitness (to-lambda genotype)))
+  (f/loopfitness (to-lambda genotype) 10))
 
 (defn roulette
   "Select one of m's keys with probability proportional to its value.
@@ -270,7 +271,7 @@
         best-index (.indexOf (:fitness population) 
                               (apply max (:fitness population)))
         elite-genotype (nth (:genotype population) best-index)
-        elite-fitness (nth (:fitness population) best-index)
+;        elite-fitness (nth (:fitness population) best-index)
         new-genotypes
           (loop [new-genes (vector)]
             (cond
@@ -285,11 +286,15 @@
                 (let [p1 (tournament population k)
                       p2 (tournament population k)]
                   (recur (into new-genes (crossover p1 p2))))))
+			new-genotypes (conj new-genotypes elite-genotype)
         new-fitness
           (into [] (map #(calculate-fitness %) new-genotypes))]
-     
-    {:genotype (conj new-genotypes elite-genotype),
-     :fitness (conj new-fitness elite-fitness)}))
+ 
+		{:genotype new-genotypes,
+		:fitness new-fitness}))
+;    {:genotype (conj new-genotypes elite-genotype),
+;     :fitness (conj new-fitness elite-fitness)}))
+
 
 (defn evolve
   "Return the population after n rounds of evolution."
@@ -357,19 +362,27 @@
 (defn main
   "Run GP" 
   [& args]
-  (do (print "Running ") (apply print args) (println) (println "---")
+  (print "Running ") 
+  (apply print args) 
+  (println) 
+  (println "---")
 
-  (let [population-size 100
-        num-generations 10
-        initial-population (ramped-half-and-half (/ population-size 2) 5)
-        final-population (evolve initial-population num-generations)
-	best-index (.indexOf (:fitness final-population) 
+	(let [population-size 100
+			num-generations 10]
+		(loop [gens num-generations 
+				initial-population (ramped-half-and-half (/ population-size 2) 5)]
+			(let [final-population (evolve initial-population num-generations)
+					best-index (.indexOf (:fitness final-population) 
                              (apply max (:fitness final-population)))
-        best-genotype (nth (:genotype final-population) best-index)]
-    (pprint-code (to-code best-genotype))
-    (println)
-    (println "GA fitness:" (nth (:fitness final-population) best-index))
-    (println "Recorded fitness:" (f/fitness (to-lambda best-genotype)
-                                            "simulator/test.txt")) 
-)))
+					best-genotype (nth (:genotype final-population) best-index)
+					-	(println "Generation" gens)
+					_	(pprint-code (to-code best-genotype))
+					_	(println)
+					_	(println "GA fitness:" (nth (:fitness final-population) best-index))
+					_	(println "Recorded fitness:" (f/fitness (to-lambda best-genotype)
+                                            "simulator/test.txt"))
+					_	(println "Keep going (y/n)?")
+					answer	(read-line)]
+					(if (= answer "y") (recur (+ gens num-generations) final-population)))))
+)
 
