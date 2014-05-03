@@ -15,7 +15,7 @@
 ; If creature penetrates a fence, the penetrating coordinate is randomly
 ; reset to within fence-spawn distance of the fence.  This is done to
 ; prevent sheep-stacking in the corners
-(def fence-spawn 0.5)
+(def fence-spawn 0.2)
 
 ; Force ranges
 (def dist-fence 5)
@@ -97,7 +97,7 @@
 	(loop [i 0 count 0]
 		(if (< i (alength sheep-pos))
 			(recur	(+ 2 i)
-						(if (and (< (aget sheep-pos i) penx) (< (aget sheep-pos (inc i)) peny))
+						(if (and (= (aget sheep-pos i) 0.0) (= (aget sheep-pos (inc i)) 0.0))
 							(inc count)
 							count))
 			(/ count SHEEP))))
@@ -138,17 +138,6 @@
 				(if-not (or	(>= y peny)	(<= x penxbl) (>= x penxbr))
 					(ainc f i (-> (if (< x penx) penxbl penxbr)
 										(- x) (* fratio))))
-
-				; Pen force - If sheep is within the boundaries of the pen
-				; then it experience a force of magnitude force-pen toward
-				; the direction of the pen center
-
-				(if (and (< x penx) (< y peny))
-					(let [px (- pencenterx x)
-							py (- pencentery y)
-							ratio (/ force-pen (Math/sqrt (+ (sqr px) (sqr py))))]
-						(ainc f i (* px ratio))
-						(ainc f j (* py ratio))))
 
 				; Wolf force - If sheep is within dist-wolf of a wolf, it
 				; experiences a 1/r^2 repulsive force whose strength scales
@@ -330,6 +319,17 @@
 	)
 )
 
+(defn get-in-the-pen
+	[^doubles sheep-pos ^doubles sheep-vel]
+	(forloop i 0 (alength sheep-pos) 2
+		(let [j (inc i)]
+			(when (and (< (aget sheep-pos i) penx)
+						(< (aget sheep-pos j) peny))
+				(aset sheep-pos i 0.0)
+				(aset sheep-pos j 0.0)
+				(aset sheep-vel i 0.0)
+				(aset sheep-vel j 0.0)))))
+				
 (defn fitness
 	"Returns percentage of sheep in pen after simulation has run for tmax steps"
 	([wolf-AI] (fitness wolf-AI nil))
@@ -365,6 +365,7 @@
 				(updatev sheep-vel sheep-force vmax-sheep vmax-sheep2)
 				(updatepos wolf-pos wolf-vel)
 				(updatepos sheep-pos sheep-vel)
+				(get-in-the-pen sheep-pos sheep-vel)
 				(if fout
 					(.write fout (str (pr-arr wolf-pos) " " (pr-arr sheep-pos) "\r\n")))
 				(if (< t tmax) (recur (inc t)))
