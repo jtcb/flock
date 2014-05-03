@@ -292,10 +292,10 @@
 											(recur (+ j 2) minj mindist))
 									minj))
 					nearest-free-sheep-x	(if (= nfs -1)
-													(fieldx)
+													(double fieldx)
 													(aget sheep-pos nfs))
 					nearest-free-sheep-y (if (= nfs -1)
-													(fieldy)
+													(double fieldy)
 													(aget sheep-pos (inc nfs)))
 													
 					; Put all parameters (other than wolf positions) in param list				
