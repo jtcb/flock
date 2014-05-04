@@ -359,30 +359,42 @@
   )
 )
 
+(defn avg [& l]
+  (let [n (count l)
+        tot (reduce + l)]
+    (if (= n 0)
+      1
+      (/ tot n))))
+
 (defn main
   "Run GP" 
   [& args]
   (print "Running ") 
   (apply print args) 
   (println) 
-  (println "---")
 
-	(let [population-size 100
-			num-generations 10]
-		(loop [gens num-generations 
-				initial-population (ramped-half-and-half (/ population-size 2) 5)]
-			(let [final-population (evolve initial-population num-generations)
-					best-index (.indexOf (:fitness final-population) 
-                             (apply max (:fitness final-population)))
-					best-genotype (nth (:genotype final-population) best-index)
-					-	(println "Generation" gens)
-					_	(pprint-code (to-code best-genotype))
-					_	(println)
-					_	(println "GA fitness:" (nth (:fitness final-population) best-index))
-					_	(println "Recorded fitness:" (f/fitness (to-lambda best-genotype)
-                                            "simulator/test.txt"))
-					_	(println "Keep going (y/n)?")
-					answer	(read-line)]
-					(if (= answer "y") (recur (+ gens num-generations) final-population)))))
+  (let [population-size 100
+        num-generations 10]
+    (loop [gens num-generations 
+           initial-population (ramped-half-and-half (/ population-size 2) 5)]
+      (println "---")
+        (let [final-population (evolve initial-population num-generations)
+              best-index (.indexOf (:fitness final-population) 
+                                   (apply max (:fitness final-population)))
+              best-genotype (nth (:genotype final-population) best-index)
+              avg-fitness (apply avg (:fitness final-population))
+              answer (do
+                       (println "Generation" gens)
+                       (println "Latest elite clone:")
+                       (pprint-code (to-code best-genotype))
+                       (println)
+                       (println "Average fitness" avg-fitness)
+                       (println "GA fitness:" (nth (:fitness final-population) best-index))
+                       (println "Recorded fitness:" (f/fitness (to-lambda best-genotype)
+                                                               "simulator/test.txt"))
+                       (println "Keep going (y/n)?")
+                       (read-line)
+                     )]
+          (if (= answer "y") (recur (+ gens num-generations) final-population)))))
 )
 
