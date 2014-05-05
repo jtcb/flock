@@ -1,5 +1,9 @@
 10,000 runs each
 
+split-wolf
+0.008845 (mean)
+0.02996 (stdv)
+
 best result (250 population, 220 generations):
 0.74301  (mean)
 0.269188 (stdev)
