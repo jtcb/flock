@@ -1,0 +1,197 @@
+\documentclass[12pt,twocolumn]{article}
+
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{url} 
+
+\usepackage{float}
+\usepackage{lingmacros}
+\usepackage{tree-dvips}
+\usepackage{graphicx}
+\usepackage{supertabular}
+\usepackage{array}
+\usepackage[english]{babel}
+
+\usepackage{multicol}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Title and Abstract %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{multicols}{1}
+\title{Evolving Shepherding Behavior with Genetic Programming}
+\author{
+Josh Brul\'{e} \\
+Department of Computer Science \\
+University of Maryland \\
+{\tt jtcbrule@gmail.com} \\
+\and
+Kevin Engel \\
+Department of Computer Science \\
+University of Maryland \\
+{\tt kevin.t.engel@gmail.com} \\
+\and
+Nick Fung \\
+Department of Computer Science \\
+University of Maryland \\
+{\tt nfung13@gmail.com} \\
+\and
+Isaac Julien \\
+Department of Computer Science \\
+University of Maryland \\
+{\tt ijulien6@gmail.com} \\
+ }
+\date{}
+
+\begin{document}
+\maketitle
+\end{multicols}
+
+
+\begin{abstract}
+TODO
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Introduction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%applications?\\
+%problem statement\\
+%modeling biological systems\\
+
+\section{Introduction and Related Work}
+
+While flocking is a popular topic, algorithms for shepherding are less well-studied. Existing approaches to shepherding
+train a predictive model as in\cite{sumpter}, or employ predefined strategies which may be combined to achieve a
+goal \cite{bennet}.
+
+TODO (Our GP system has *no* predefined strategies, and no predictive modeling - we "throw GP" at the problem and sees what sticks, with no prior knowledge coded to the system.)
+
+\section{Related Work}
+
+(Lien et. al, 2005) studies shepherding behavior in an environment with multiple shepherds cooperating to control a flock \cite{lien}.
+Shepherds, which exert a repulsive force on the flock, must find \emph{steering points} to influence the direction of the flock as
+desired. The steering points for the group of shepherds form either a line or an arc on a side of the flock, and each shepherd
+chooses a steering point to approach based on one of several proposed heuristics.
+
+(Sumpter, et. al, 1998) presents a machine vision system that models the position and velocity of a flock of animals \cite{sumpter}.
+A Point Distribution Mode is used to generate features based on input from a camera mounted on a "Robotic Sheepdog,"
+and these features are then used to estimate a probability distribution of the movement of the flock over time, conditional on its
+previous locations and velocities. This probability distribution is estimated using competitive learning in a neural network.
+Finally, the robot can herd a flock of animals toward a goal by a maximum likelihood estimate of the robot's own path.
+
+(Bennet and Trafankowski, 2012) provides an analysis of flocking and herding algorithms, and also introduces a
+herding algorithm based on specific strategies inspired by real sheepdogs\cite{bennet}.
+\cite{bennet} also considers using one of several flocking strategies for the animals being herded, and finds
+that the success of different a herding algorithm is often dependent on the flocking behavior.
+
+(Cowling and Gmeinwieser, 2010) uses a combined top-down and bottom-up approach to provide realistic sheep herding
+in the context of a game. A finite state machine associated with each sheepdog represents possible herding strategies,
+such as circling, and the state of the FSM is controlled at the top level by an AI "shepherd" \cite{cowling}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Simulation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Simulation}
+
+\subsection{Environment}
+The simulation environment takes place within an enclosed, square area designated as the field. The edge of the field acts as a fence, applying a repulsive force to any sheep that come within distance. Neither sheep nor dog may cross the fence, ensuring that the simulation is confined to a finite playing field.
+
+The goal of the shepherd dog are to move the sheep into a pen. In the simplest case, the pen is located in the top left corner of the field. Three sides of the pen consist of a fence, two sides overlapping with the field enclosure on the top and left sides. The right side fence was added to help prevent sheep from randomly drifting into the pen.
+
+% In other configurations, the pen can be moved to other locations of the field with different orientations for the open side.
+
+TODO: put a graphic here
+
+\subsection{Agents}
+
+The simulation agents consist of sheep and a dog. The sheep all follow the same fixed rules, updating their position based on a set of force vectors. The sheep feel a ($1/r^2$) attractive force toward other sheep, designed to encourage clustering, as well as a repulsive force from other sheep (trigged when the sheep are sufficiently close to each other), designed to model the necessary physical space between the agents that would prevent them from overlapping. Sheep also feel repulsion from the fence and a strong, but short range attraction to the corner of the pen once they are within its area to prevent a `captured' sheep from leaving the pen once it has been successfully herded in.
+
+The dogs obey the same fencing restrictions that are applied to the sheep, but update their force vectors based on an evolved genetic program (the `dog AI'). In addition, they apply repulsive forces to the sheep and rely on these forces to herd the sheep in a desired direction.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Algorithm %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Genetic Program}
+
+\subsection{Expression Trees}
+A `dog AI' is a pair of pure (memoryless) functions of the following parameters (x and y coordinates for each): the dog's current position, the average position of all sheep, and the position of the nearest sheep. These functions are stored as s-expressions (i.e. trees) whose leaves are either one of the parameters of the function, or some random number (drawn from a normal distribution).
+
+The internal nodes of a `dog AI' expression tree are one of the following operators: $-$ (unary), $-$ (binary), $+$, $*$, $div$ (where div is *protected* division; attempting to divide by zero will return 1 instead).
+
+In addition to these basic mathematical operations, we included qif(a, b, c, d), `quaternary if', which evaluates to $c$ if $a \leq b$ and $d$ otherwise.
+
+\subsection{Decision Tree}
+
+\subsection{Fitness}
+The fitness of each algorithm was measured as the number of sheep that were successfully shepherded into the pen. The negative aspects to using this measure of fitness includes the fact that it can be difficult to obtain a fitness greater than zero for an initially random population. Another fitness measurement considered was the average distance of each sheep from the pen. However the problem with this measurement is that sheep that are on the opposite side of the pen fencing will be very close and have a high fitness even though they require some additional complex influences to force them around the fence into the pen. 
+
+\subsection{Operators}
+crossover and mutation
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Experimentation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Experimentation}
+
+\subsection{One Dog, Corner Pen}
+
+Initial experimentation took place under the conditions of a single dog attempting to shepherd 20 sheep into a pen located in the top left corner of the field. This simplified scenario was targeted as an early goal because it restricts the complexity of the problem and provides good conditions for evolved behaviors. The experiment took place using a population size of N over G generations. The mutation rate was held at 0.05. A two player tournament with crossover reproduction. This crossover method was consistently used across all experiments.
+
+\subsection{Two Dogs, Corner Pen}
+
+\subsection{Three Dogs, Corner Pen}
+
+\subsection{Two Dogs, Center Pen}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Results %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Results}
+
+The one wolf, corner pen scenario produced an evolved behavior that was compared against a handcrafted algorithm. The handcrafted algorithm was created utilizing only the functions available to the genetic program to make this a fair comparison.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Discussion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Discussion}
+
+The experimental results reflect a number of difficulties that arise from attempting to evolve complex behaviors from a genetic program.
+
+%%% Implementation %%%
+
+\section{Implementation}
+
+The entire genetic programming system and simulation environment for this project was implemented in Clojure (a dialect of Lisp) using only the standard library functions available with the language. The simulation visualizations were implemented in Java.
+
+The full code repository is available online:
+
+https://github.com/jtcb/flock
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Bibliography %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{thebibliography}{9}
+
+\bibitem{bennet}
+Brandon Bennett and Matthew Trafankowski.
+\emph{A Comparative Investigation of Herding Algorithms}.
+2012; In proceeding of: Proceedings of the Symposium on Understanding and Modelling Collective Phenomena (UMoCoP) at the Artificial Intelligence and Simulation of Behviour World Congress (AISB-12)
+
+\bibitem{sumpter}
+N. Sumpter, A.J. Rulpitt, R. Vaughan, R.D. Tillett, and R.D. Boylel.
+\emph{Learning Models of Animal Behaviaur for a Robotic Sheepdog}
+1998; IAPR Wotkrhop on Machine Vision Applications. Nov 17-t9. 19%. MAuhan. Chlha Japan
+
+\bibitem{cowling}
+Peter Cowling and Christian Gmeinwieser.
+\emph{AI for Herding Sheep}
+2010; Proceedings of the Sixth AAAI Conference on Artificial Intelligence and Interactive Digital Entertainment.
+
+\bibitem{lien}
+Jyh-Ming Lien, Samuel Rodriguez, Jean-Phillipe Malric, and Nancy M. Amato.
+\emph{Shepherding Behaviors with Multiple Shepherds}.
+2005. Proceedings of the 2005 IEEE International Conference on Robotics and Automation
+
+\end{thebibliography}
+
+
+
+
+\end{document}
