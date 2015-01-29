@@ -1,23 +1,10 @@
 # flock
 
-FIXME: description
-
 ## Usage
 
     lein repl
     flock.core=> (main)
 
-## Options
+## Videos
 
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-
-
+https://www.dropbox.com/sh/yx05hy0g6vswlkp/0IZy0zkcQ7
