@@ -5,6 +5,6 @@
     lein repl
     flock.core=> (main)
 
-## Videos
+## Video
 
-https://www.dropbox.com/sh/yx05hy0g6vswlkp/0IZy0zkcQ7
+https://www.youtube.com/watch?v=cjmBwBRiNt8
